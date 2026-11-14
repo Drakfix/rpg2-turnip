@@ -15,8 +15,8 @@ from eden_driver import ocr               # noqa: E402
 from gn_acr_run import wait_for, PKG      # noqa: E402
 
 DRIVERS = {   # search text, regex the chosen entry must match
-    "v4": ("A22", r"A22 TUNED v4 \(Mesa 27"),
-    "v4-263": ("A22", r"A22 TUNED v4 \(Mesa 26"),
+    "v4": ("A22", r"A22 TUNED .?4 \(Mesa 27"),      # OCR often reads "v4" as '"4'
+    "v4-263": ("A22", r"A22 TUNED .?4 \(Mesa 26"),
     "v5rc2": ("v5rc2", r"v5rc2"),
     "t30": ("T30", r"Driver T30"),
 }
