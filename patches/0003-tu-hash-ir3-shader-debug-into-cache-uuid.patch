@@ -1,0 +1,20 @@
+diff --git a/src/freedreno/vulkan/tu_device.cc b/src/freedreno/vulkan/tu_device.cc
+index 43e7f41c..4605963b 100644
+--- a/src/freedreno/vulkan/tu_device.cc
++++ b/src/freedreno/vulkan/tu_device.cc
+@@ -125,6 +125,15 @@ tu_device_get_cache_uuid(struct tu_physical_device *device, void *uuid)
+    _mesa_blake3_update(&ctx, &device->uche_trap_base, sizeof(device->uche_trap_base));
+    _mesa_blake3_update(&ctx, &device->compiler_options,
+                        sizeof(device->compiler_options));
++   /* RPG2: IR3_SHADER_DEBUG changes code generation (wave size, aliasing,
++    * preambles, fp16 ...) but is not part of any cache key, so cached shaders
++    * from an earlier run would silently hide the change. Mixing the option
++    * string into the UUID gives every setting its own pipeline/disk cache.
++    * Unset (the default) hashes nothing, so normal caches stay valid.
++    */
++   const char *ir3_dbg = os_get_option("IR3_SHADER_DEBUG");
++   if (ir3_dbg && *ir3_dbg)
++      _mesa_blake3_update(&ctx, ir3_dbg, strlen(ir3_dbg));
+    _mesa_blake3_final(&ctx, blake3);
+ 
+    memcpy(uuid, blake3, VK_UUID_SIZE);

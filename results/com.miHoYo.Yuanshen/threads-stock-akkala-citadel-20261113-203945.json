@@ -1,0 +1,21 @@
+{
+ "label": "stock-akkala-citadel",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 69.93333333333332,
+  "VulkanWorker": 69.39999999999999,
+  "CPUCore_2": 31.7,
+  "CPUCore_1": 27.799999999999997,
+  "CPUCore_0": 27.433333333333334,
+  "HostTiming": 13.033333333333333,
+  "AudioRenderSyst": 4.533333333333334,
+  "audio": 4.366666666666667,
+  "GPUFencingThrea": 3.733333333333334,
+  "DSP_AudioRender": 3.4,
+  "nvservices": 2.3000000000000003,
+  "miHoYo.Yuanshen": 1.4333333333333333,
+  "VsyncReceiver": 1.2,
+  "vi": 1.1
+ }
+}

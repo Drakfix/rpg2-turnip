@@ -1,0 +1,23 @@
+{
+ "label": "tuned-v4-akkala-citadel",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 69.93333333333334,
+  "VulkanWorker": 39.833333333333336,
+  "CPUCore_2": 35.800000000000004,
+  "CPUCore_1": 29.666666666666668,
+  "CPUCore_0": 28.299999999999997,
+  "HostTiming": 13.966666666666669,
+  "GPUFencingThrea": 5.366666666666667,
+  "audio": 4.366666666666666,
+  "AudioRenderSyst": 4.366666666666666,
+  "DSP_AudioRender": 3.5000000000000004,
+  "NativeEmulation": 2.966666666666667,
+  "nvservices": 2.3000000000000003,
+  "miHoYo.Yuanshen": 2.233333333333333,
+  "CPUCore_3": 1.5666666666666667,
+  "vi": 1.1666666666666667,
+  "VsyncReceiver": 1.1333333333333335
+ }
+}

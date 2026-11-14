@@ -1,0 +1,72 @@
+diff --git a/src/freedreno/ir3/ir3_compiler.c b/src/freedreno/ir3/ir3_compiler.c
+index 9c49597..d750cc1 100644
+--- a/src/freedreno/ir3/ir3_compiler.c
++++ b/src/freedreno/ir3/ir3_compiler.c
+@@ -40,6 +40,8 @@ static const struct debug_named_value shader_debug_options[] = {
+    {"noaliasrt",  IR3_DBG_NOALIASRT,  "Don't use alias.rt"},
+    {"asmroundtrip", IR3_DBG_ASM_ROUNDTRIP, "Disassemble, reassemble and compare every shader"},
+    {"thread64",   IR3_DBG_THREAD64,   "Prefer 64-thread wave size (when available)"},
++   {"notrigwa",   IR3_DBG_NOTRIGWA,   "Never apply the sin/cos range-reduction workaround"},
++   {"trigwa",     IR3_DBG_TRIGWA,     "Always apply the sin/cos range-reduction workaround"},
+ #if MESA_DEBUG
+    /* MESA_DEBUG-only options: */
+    {"schedmsgs",  IR3_DBG_SCHEDMSGS,  "Enable scheduler debug messages"},
+diff --git a/src/freedreno/ir3/ir3_compiler.h b/src/freedreno/ir3/ir3_compiler.h
+index 5bc4302..b25e101 100644
+--- a/src/freedreno/ir3/ir3_compiler.h
++++ b/src/freedreno/ir3/ir3_compiler.h
+@@ -319,6 +319,8 @@ enum ir3_shader_debug {
+    IR3_DBG_RAMSGS = BITFIELD_BIT(23),
+    IR3_DBG_NOALIASTEX = BITFIELD_BIT(24),
+    IR3_DBG_NOALIASRT = BITFIELD_BIT(25),
++   IR3_DBG_NOTRIGWA = BITFIELD_BIT(26),
++   IR3_DBG_TRIGWA = BITFIELD_BIT(27),
+ };
+ 
+ extern enum ir3_shader_debug ir3_shader_debug;
+diff --git a/src/freedreno/ir3/ir3_nir.c b/src/freedreno/ir3/ir3_nir.c
+index 6e6f09e..da3d1d8 100644
+--- a/src/freedreno/ir3/ir3_nir.c
++++ b/src/freedreno/ir3/ir3_nir.c
+@@ -996,6 +996,31 @@ ir3_nir_lower_io(nir_shader *s)
+ /**
+  * Late passes that need to be done after pscreen->finalize_nir()
+  */
++/* The trig workaround wraps every 32-bit sin/cos argument into [-pi, pi]
++ * before the native instruction (4 extra instructions per call).
++ *
++ * RPG2: on the Adreno A22 (Snapdragon G2 Gen 2, KGSL chip id 0x43030b00) the
++ * native sin/cos are accurate over the whole float range, and the proprietary
++ * driver (v762.31) uses them directly: with the workaround skipped, Turnip's
++ * output is bit-identical to the blob's over 262144 inputs (2^-30..2^60, +-0,
++ * +-inf, NaN, denormals), while with it applied the error grows with |x|
++ * (6e-5 at 1e3, 6e-3 at 1e5) and a sin/cos-heavy fragment shader runs ~17%
++ * slower. Measured on a Retroid Pocket G2, so only that chip id is exempted.
++ * IR3_SHADER_DEBUG=trigwa / notrigwa force it on / off for A/B testing.
++ */
++static bool
++ir3_needs_trig_workarounds(const struct ir3_compiler *compiler)
++{
++   if (ir3_shader_debug & IR3_DBG_TRIGWA)
++      return true;
++   if (ir3_shader_debug & IR3_DBG_NOTRIGWA)
++      return false;
++   if (compiler->dev_id &&
++       (compiler->dev_id->chip_id & 0xffffffffull) == 0x43030b00ull)
++      return false;
++   return true;
++}
++
+ void
+ ir3_nir_post_finalize(struct ir3_shader *shader)
+ {
+@@ -1111,7 +1136,8 @@ ir3_nir_post_finalize(struct ir3_shader *shader)
+    /* we cannot ensure that ir3_finalize_nir() is only called once, so
+     * we also need to do any run-once workarounds here:
+     */
+-   OPT(s, ir3_nir_apply_trig_workarounds);
++   if (ir3_needs_trig_workarounds(compiler))
++      OPT(s, ir3_nir_apply_trig_workarounds);
+ 
+    const nir_lower_image_options lower_image_opts = {
+       .lower_cube_size = true,

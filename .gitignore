@@ -1,0 +1,27 @@
+# Signing keys and anything that looks like one: never commit
+release-keys/
+*.jks
+*.keystore
+*.pass
+keystore/
+
+# Separate projects / prototypes
+g2-fan-curve/
+fanapp/
+
+# Third-party binaries and drivers (download them from their authors)
+tools/
+DRIVERS THAT WORK GOOD WITH THE G2/
+
+# Build outputs (driver zips are published as GitHub Release assets)
+out/
+
+# Raw logs can contain device serials and LAN addresses
+logs/
+
+# Screenshots taken by the Eden automation
+results/**/shots/
+
+__pycache__/
+*.pyc
+.DS_Store

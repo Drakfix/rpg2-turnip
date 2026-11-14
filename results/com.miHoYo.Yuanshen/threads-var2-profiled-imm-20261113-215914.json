@@ -1,0 +1,21 @@
+{
+ "label": "var2-profiled-imm",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 71.96666666666667,
+  "VulkanWorker": 41.1,
+  "CPUCore_2": 38.6,
+  "CPUCore_1": 32.13333333333333,
+  "CPUCore_0": 29.333333333333332,
+  "HostTiming": 13.166666666666666,
+  "GPUFencingThrea": 5.1000000000000005,
+  "DSP_AudioRender": 3.4666666666666663,
+  "AudioTrack": 3.033333333333333,
+  "NativeEmulation": 1.9666666666666668,
+  "audio": 1.9000000000000001,
+  "AudioRenderSyst": 1.7666666666666668,
+  "miHoYo.Yuanshen": 1.2,
+  "nvservices": 1.0333333333333334
+ }
+}

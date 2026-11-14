@@ -1,0 +1,121 @@
+﻿== props ==
+ro.product.model = Retroid Pocket G2
+ro.product.device = pineapple
+ro.board.platform = pineapple
+ro.soc.model = SG6275P
+ro.soc.manufacturer = QTI
+ro.hardware = qcom
+ro.hardware.vulkan = adreno
+ro.hardware.egl = adreno
+ro.build.version.release = 15
+ro.build.version.sdk = 35
+ro.build.display.id = RPG2_V1.0.0.176_20260123_181229_user
+ro.build.fingerprint = qti/pineapple/pineapple:15/AQ3A.250226.002/eng.RPG2.20260123.180002:user/dev-keys
+ro.vendor.build.fingerprint = qti/pineapple/pineapple:14/UKQ1.250213.001/RPG201231848:user/release-keys
+ro.product.cpu.abi = arm64-v8a
+ro.opengles.version = 196610
+ro.gfx.driver.0 = 
+ro.gfx.driver.1 = com.qualcomm.qti.gpudrivers.pineapple.api34
+ro.hwui.use_vulkan = true
+debug.hwui.renderer = 
+== kernel ==
+Linux localhost 6.1.115-android14-11-maybe-dirty #1 SMP PREEMPT Thu Jan  1 00:00:00 UTC 1970 aarch64 Toybox
+== kgsl sysfs ==
+kgsl
+kgsl-3d0
+gpu_model = Adreno22
+gpubusy =       0       0 
+gpu_available_frequencies = 950000000 900000000 835000000 736000000 684000000 633000000 500000000 353000000 255000000  
+max_gpuclk = 950000000 
+min_clock_mhz = 500 
+max_clock_mhz = 950 
+gpuclk = 500000000 
+num_pwrlevels = 9 
+default_pwrlevel = 8 
+max_pwrlevel = 0 
+min_pwrlevel = 6 
+devfreq/governor = msm-adreno-tz 
+devfreq/available_governors = msm-adreno-tz 
+devfreq/cur_freq = 500000000 
+perfcounter = 0 
+preemption = 1 
+hwcg = 1 
+throttling = 0 
+thermal_pwrlevel = 0 
+bus_split = 1 
+force_clk_on = 0 
+force_bus_on = 0 
+force_rail_on = 0 
+idle_timer = 80 
+popp = 0 
+lm = 0 
+ifpc = 1 
+ifpc_count = 0x535998 
+acd = 1 
+bcl = 1 
+gpu_llc_slice_enable = 1 
+gpuhtw_llc_slice_enable = 1 
+== kgsl-3d0 dir ==
+acd bcl bus_split clock_mhz clx dcvs_tuning_mingap dcvs_tuning_numbusy dcvs_tuning_penalty default_pwrlevel dev devfreq device dms force_bus_on force_clk_on force_no_nap force_rail_on freq_table_mhz ft_hang_intr_status ft_long_ib_detect ft_pagefault_policy ft_policy gmu_ab gpu_available_frequencies gpu_busy_percentage gpu_clock_stats gpu_llc_slice_enable gpu_model gpubusy gpuclk gpuhtw_llc_slice_enable hwcg idle_timer ifpc ifpc_count l3_vote lm lpac max_clock_mhz max_gpuclk max_pwrlevel min_clock_mhz min_pwrlevel minbw_timer num_pwrlevels perfcounter popp power preempt_count preemption pwrscale reset_count rt_bus_hint snapshot sptp_pc subsystem temp thermal_pwrlevel throttling touch_wake uevent wake_nice wake_timeout 
+== soc ==
+700
+SG_CLIFFS7P
+Snapdragon
+1.0
+cat: /sys/devices/soc0/chip_name: No such file or directory
+== devicetree gpu ==
+kgsl-smmu@3da0000
+qcom,gmu@3d69000
+qcom,gpu-coresight-cx
+qcom,gpu-coresight-gx
+qcom,kgsl-3d0@3d00000
+qcom,kgsl-iommu@3da0000
+node: /proc/device-tree/soc/qcom,kgsl-3d0@3d00000
+compatible = 71636f6d2c616472656e6f2d6770752d67656e372d31312d300071636f6d
+2c6b67736c2d33643000
+
+== vulkan driver files ==
+
+-rw-r--r-- 1 root root   3283104 2008-12-31 18:00 /vendor/lib64/hw/vulkan.adreno.so
+-rw-r--r-- 1 root root  20700096 2008-12-31 18:00 /vendor/lib64/hw/vulkan.pastel.so
+
+/vendor/lib64/egl:
+total 20592
+drwxr-xr-x 2 root shell    4096 2008-12-31 18:00 .
+drwxr-xr-x 9 root shell   45056 2008-12-31 18:00 ..
+-rw-r--r-- 1 root root   105136 2008-12-31 18:00 eglSubDriverAndroid.so
+-rw-r--r-- 1 root root    48104 2008-12-31 18:00 libEGL_adreno.so
+-rw-r--r-- 1 root root   735032 2008-12-31 18:00 libEGL_angle.so
+-rw-r--r-- 1 root root   266520 2008-12-31 18:00 libGLESv1_CM_adreno.so
+-rw-r--r-- 1 root root    36352 2008-12-31 18:00 libGLESv1_CM_angle.so
+-rw-r--r-- 1 root root  4825616 2008-12-31 18:00 libGLESv2_adreno.so
+-rw-r--r-- 1 root root  8866520 2008-12-31 18:00 libGLESv2_angle.so
+-rw-r--r-- 1 root root  3611912 2008-12-31 18:00 libVkLayer_ADRENO_qprofiler.so
+-rw-r--r-- 1 root root   360528 2008-12-31 18:00 libq3dtools_adreno.so
+-rw-r--r-- 1 root root  2150848 2008-12-31 18:00 libq3dtools_esx.so
+-rw-r--r-- 1 root root   93776 2008-12-31 18:00 /vendor/lib64/libadreno_utils.so
+-rw-r--r-- 1 root root 2276432 2008-12-31 18:00 /vendor/lib64/libgsl.so
+-rw-r--r-- 1 root root 1572112 2008-12-31 18:00 /vendor/lib64/libllvm-glnext.so
+== firmware ==
+-rw-r--r--  1 root root    33176 2008-12-31 18:00 gen70900_aqe.fw
+-rw-r--r--  1 root root    85300 2008-12-31 18:00 gen70900_sqe.fw
+-rw-r--r--  1 root root    12088 2008-12-31 18:00 gen70900_zap.mbn
+-rw-r--r--  1 root root    80680 2008-12-31 18:00 gen71100_gmu.bin
+-rw-r--r--  1 root root    66036 2008-12-31 18:00 gen71100_sqe.fw
+-rw-r--r--  1 root root    12088 2008-12-31 18:00 gen71100_zap.mbn
+-rw-r--r--  1 root root    78588 2008-12-31 18:00 gmu_gen70900.bin
+== surfaceflinger GLES ==
+ ------------RE GLES------------
+GLES: Qualcomm, Adreno (TM) 22, OpenGL ES 3.2 V@0762.31 (GIT@ae801e1e7c, I15873b352d, 1735922436) (Date:01/03/25)
+vulkan_renderengine: false
+== cpu ==
+1900800 1900800 1900800 2611200 2611200 2611200 2611200 2803200 
+      3 CPU part	: 0xd80
+      4 CPU part	: 0xd81
+      1 CPU part	: 0xd82
+== mem ==
+MemTotal:        7492216 kB
+MemFree:          654996 kB
+MemAvailable:    3951768 kB
+== id ==
+uid=2000(shell) gid=2000(shell) groups=2000(shell),1004(input),1007(log),1011(adb),1015(sdcard_rw),1028(sdcard_r),1078(ext_data_rw),1079(ext_obb_rw),3001(net_bt_admin),3002(net_bt),3003(inet),3006(net_bw_stats),3009(readproc),3011(uhid),3012(readtracefs) context=u:r:shell:s0

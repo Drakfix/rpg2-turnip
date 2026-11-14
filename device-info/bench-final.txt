@@ -1,0 +1,45 @@
+﻿#### drawcalls x1
+== stock 
+BENCH drawcalls  cpu_ms=2.282 frame_ms=10.746 min_ms=8.171 gpu_mhz=504
+== a0_ours_vanilla_27.0 
+BENCH drawcalls  cpu_ms=2.246 frame_ms=18.300 min_ms=17.106 gpu_mhz=835
+== b2_g2cpu 
+BENCH drawcalls  cpu_ms=2.051 frame_ms=11.053 min_ms=6.527 gpu_mhz=552
+== c4_steven_26.3_R3 
+BENCH drawcalls  cpu_ms=2.081 frame_ms=18.746 min_ms=17.779 gpu_mhz=835
+#### fill x4
+== stock 
+BENCH fill       cpu_ms=0.098 frame_ms=10.369 min_ms=9.896 gpu_mhz=950
+== a0_ours_vanilla_27.0 
+BENCH fill       cpu_ms=0.077 frame_ms=10.109 min_ms=9.727 gpu_mhz=950
+== b2_g2cpu 
+BENCH fill       cpu_ms=0.072 frame_ms=10.083 min_ms=9.420 gpu_mhz=950
+== c4_steven_26.3_R3 
+BENCH fill       cpu_ms=0.075 frame_ms=9.815 min_ms=9.264 gpu_mhz=950
+#### heavy_fs x4
+== stock 
+BENCH heavy_fs   cpu_ms=0.065 frame_ms=18.445 min_ms=17.853 gpu_mhz=950
+== a0_ours_vanilla_27.0 
+BENCH heavy_fs   cpu_ms=0.060 frame_ms=21.806 min_ms=21.157 gpu_mhz=950
+== b2_g2cpu 
+BENCH heavy_fs   cpu_ms=0.057 frame_ms=18.630 min_ms=18.045 gpu_mhz=950
+== c4_steven_26.3_R3 
+BENCH heavy_fs   cpu_ms=0.059 frame_ms=21.835 min_ms=21.216 gpu_mhz=950
+#### multipass x4
+== stock 
+BENCH multipass  cpu_ms=1.790 frame_ms=14.188 min_ms=10.813 gpu_mhz=663
+== a0_ours_vanilla_27.0 
+BENCH multipass  cpu_ms=0.650 frame_ms=10.632 min_ms=10.269 gpu_mhz=900
+== b2_g2cpu 
+BENCH multipass  cpu_ms=0.651 frame_ms=10.820 min_ms=10.119 gpu_mhz=878
+== c4_steven_26.3_R3 
+BENCH multipass  cpu_ms=0.701 frame_ms=11.239 min_ms=10.667 gpu_mhz=835
+#### pipelines
+== stock
+BENCH pipelines  per_pipeline_ms=7.143
+== a0_ours_vanilla_27.0
+BENCH pipelines  per_pipeline_ms=3.305
+== b2_g2cpu
+BENCH pipelines  per_pipeline_ms=2.440
+== c4_steven_26.3_R3
+BENCH pipelines  per_pipeline_ms=3.399

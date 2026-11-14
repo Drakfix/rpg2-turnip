@@ -1,0 +1,20 @@
+{
+ "label": "ir3-nopreamble",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 69.73333333333333,
+  "VulkanWorker": 40.46666666666667,
+  "CPUCore_2": 37.333333333333336,
+  "CPUCore_1": 31.433333333333334,
+  "CPUCore_0": 27.7,
+  "HostTiming": 13.000000000000002,
+  "GPUFencingThrea": 4.633333333333334,
+  "DSP_AudioRender": 3.2999999999999994,
+  "AudioTrack": 3.033333333333333,
+  "NativeEmulation": 1.9333333333333336,
+  "audio": 1.8666666666666665,
+  "AudioRenderSyst": 1.8,
+  "miHoYo.Yuanshen": 1.1333333333333335
+ }
+}

@@ -1,0 +1,23 @@
+{
+ "label": "t30-akkala-citadel",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 69.60000000000001,
+  "VulkanWorker": 41.23333333333334,
+  "CPUCore_2": 36.56666666666666,
+  "CPUCore_1": 30.233333333333334,
+  "CPUCore_0": 29.566666666666666,
+  "HostTiming": 14.366666666666667,
+  "GPUFencingThrea": 5.7,
+  "AudioRenderSyst": 4.566666666666666,
+  "audio": 4.5,
+  "DSP_AudioRender": 3.4666666666666663,
+  "NativeEmulation": 3.0999999999999996,
+  "nvservices": 2.4,
+  "miHoYo.Yuanshen": 1.4666666666666668,
+  "vi": 1.1666666666666667,
+  "VsyncReceiver": 1.1666666666666667,
+  "CPUCore_3": 1.0666666666666667
+ }
+}

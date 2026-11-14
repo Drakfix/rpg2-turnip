@@ -1,0 +1,71 @@
+diff --git a/src/freedreno/ir3/ir3_compiler.c b/src/freedreno/ir3/ir3_compiler.c
+index d750cc11..abbe53a0 100644
+--- a/src/freedreno/ir3/ir3_compiler.c
++++ b/src/freedreno/ir3/ir3_compiler.c
+@@ -42,6 +42,8 @@ static const struct debug_named_value shader_debug_options[] = {
+    {"thread64",   IR3_DBG_THREAD64,   "Prefer 64-thread wave size (when available)"},
+    {"notrigwa",   IR3_DBG_NOTRIGWA,   "Never apply the sin/cos range-reduction workaround"},
+    {"trigwa",     IR3_DBG_TRIGWA,     "Always apply the sin/cos range-reduction workaround"},
++   {"nooptpreamble", IR3_DBG_NOOPTPREAMBLE, "Never hoist uniform code into the preamble (keeps descriptor prefetch)"},
++   {"optpreamble",   IR3_DBG_OPTPREAMBLE,   "Always hoist uniform code into the preamble"},
+ #if MESA_DEBUG
+    /* MESA_DEBUG-only options: */
+    {"schedmsgs",  IR3_DBG_SCHEDMSGS,  "Enable scheduler debug messages"},
+diff --git a/src/freedreno/ir3/ir3_compiler.h b/src/freedreno/ir3/ir3_compiler.h
+index b25e101f..90be8fb6 100644
+--- a/src/freedreno/ir3/ir3_compiler.h
++++ b/src/freedreno/ir3/ir3_compiler.h
+@@ -321,6 +321,8 @@ enum ir3_shader_debug {
+    IR3_DBG_NOALIASRT = BITFIELD_BIT(25),
+    IR3_DBG_NOTRIGWA = BITFIELD_BIT(26),
+    IR3_DBG_TRIGWA = BITFIELD_BIT(27),
++   IR3_DBG_NOOPTPREAMBLE = BITFIELD_BIT(28),
++   IR3_DBG_OPTPREAMBLE = BITFIELD_BIT(29),
+ };
+ 
+ extern enum ir3_shader_debug ir3_shader_debug;
+diff --git a/src/freedreno/ir3/ir3_nir.c b/src/freedreno/ir3/ir3_nir.c
+index da3d1d8f..7c08d4bd 100644
+--- a/src/freedreno/ir3/ir3_nir.c
++++ b/src/freedreno/ir3/ir3_nir.c
+@@ -1021,6 +1021,30 @@ ir3_needs_trig_workarounds(const struct ir3_compiler *compiler)
+    return true;
+ }
+ 
++/* nir_opt_preamble hoists uniform computations (and UBO loads) out of the
++ * shader into the preamble, which runs once per draw/wave group and writes
++ * the results into the const file.
++ *
++ * RPG2: on the Adreno A22 (Snapdragon G2 Gen 2, chip id 0x43030b00) this costs
++ * more GPU time than it saves. In Zelda BOTW under Eden (Akkala Citadel, 30 FPS
++ * cap) GPU cycles per frame were 16.7 on average with the pass and 15.4 without
++ * it (IR3_SHADER_DEBUG=nopreamble, 4 vs 3 runs, -8%), matching the proprietary
++ * driver (15.3). Descriptor prefetch is kept: disabling it alone cost +9%.
++ * IR3_SHADER_DEBUG=optpreamble / nooptpreamble force the pass on / off.
++ */
++static bool
++ir3_use_opt_preamble(const struct ir3_compiler *compiler)
++{
++   if (ir3_shader_debug & IR3_DBG_OPTPREAMBLE)
++      return true;
++   if (ir3_shader_debug & IR3_DBG_NOOPTPREAMBLE)
++      return false;
++   if (compiler->dev_id &&
++       (compiler->dev_id->chip_id & 0xffffffffull) == 0x43030b00ull)
++      return false;
++   return true;
++}
++
+ void
+ ir3_nir_post_finalize(struct ir3_shader *shader)
+ {
+@@ -1680,7 +1704,8 @@ ir3_nir_lower_variant(struct ir3_shader_variant *so,
+     * insert instructions in the preamble to push UBOs.
+     */
+    if (so->compiler->has_preamble &&
+-       !(ir3_shader_debug & IR3_DBG_NOPREAMBLE))
++       !(ir3_shader_debug & IR3_DBG_NOPREAMBLE) &&
++       ir3_use_opt_preamble(so->compiler))
+       progress |= OPT(s, ir3_nir_opt_preamble, so);
+ 
+    if (so->compiler->info->props.load_shader_consts_via_preamble)

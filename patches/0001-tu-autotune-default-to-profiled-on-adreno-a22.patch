@@ -1,0 +1,22 @@
+diff --git a/src/freedreno/vulkan/tu_autotune.cc b/src/freedreno/vulkan/tu_autotune.cc
+index fd0b21f..294b32c 100644
+--- a/src/freedreno/vulkan/tu_autotune.cc
++++ b/src/freedreno/vulkan/tu_autotune.cc
+@@ -274,6 +274,17 @@ tu_autotune::get_env_config()
+    static config_t at_config;
+    std::call_once(once, [&] {
+       algorithm algo = algorithm::DEFAULT;
++
++      /* RPG2: Adreno A22 (Snapdragon G2 Gen 2, KGSL chip id 0x43030b00).
++       * Measured on a Retroid Pocket G2: the bandwidth estimate picks GMEM for
++       * draw-call-heavy render passes that run ~2.5x faster in SYSMEM on this
++       * 3-CCU GPU, while the profiled algorithm converges on the faster mode.
++       * Still overridable with TU_AUTOTUNE_ALGO (debug.mesa.tu.autotune.algo
++       * on Android) or the tu_autotune_algorithm driconf option.
++       */
++      if ((device->physical_device->dev_id.chip_id & 0xffffffffull) == 0x43030b00ull)
++         algo = algorithm::PROFILED;
++
+       const char *algo_str = os_get_option("TU_AUTOTUNE_ALGO");
+       std::string_view algo_strv;
+ 
