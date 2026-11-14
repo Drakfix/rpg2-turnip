@@ -63,6 +63,9 @@ def pick_device():
     # Prefer a plain IP:port, then the mDNS name without a " (2)" duplicate suffix.
     serials.sort(key=lambda s: (not re.match(r"\d+\.\d+\.\d+\.\d+:\d+$", s), " (" in s))
     os.environ["ANDROID_SERIAL"] = serials[0]
+    # The G2 sleeps after 60 s idle (e.g. while cooling down); wake it before any input.
+    sh("input keyevent KEYCODE_WAKEUP")
+    time.sleep(1)
 
 
 def open_game_card(g):

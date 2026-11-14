@@ -11,6 +11,29 @@ Newest first. Raw runs are in [`results/`](../results).
 - CPU: 3× A520 (cores 0–2, 1.9 GHz), 4× A720 (3–6, 2.6 GHz), 1× X4 (7, 2.8 GHz). No SVE.
 - GPU governor `msm-adreno-tz`, 255–950 MHz; it cannot be pinned without root.
 
+## 2026-11-14: Assassin's Creed Revelations (GameNative / DXVK), v5rc2 vs T30 and v4
+
+Setup: Constantinople square where the save loads, Proton 10 arm64ec + DXVK + Gamescope,
+Wrapper-v2. Each run: cooldown to ≤40 °C first (`scripts/cooldown.py`), 20 s flicker capture,
+60 s measurement. Automated with `scripts/gn_acr_run.py` and `scripts/gn_driver.py`.
+
+| Driver | FPS | GPU MHz | GPU busy | CPU |
+|---|---|---|---|---|
+| **v5rc2** | 35.5, 37.7, 36.2 | 632–646 | 65–68% | 54–57% |
+| T30 | 35.4, 37.0 | 636–637 | 66–67% | 56% |
+| TUNED v4 | 36.3 (1 run) | 630 | 66% | 55% |
+
+- **No regression and no gain.** All three are within run-to-run noise. GameNative's own HUD shows
+  "LIMIT CPU": the x86 translation is the bottleneck here, as with Far Cry 2, so GPU-side driver
+  changes can't move FPS in this scene.
+- The flicker detector isn't usable in this scene: T30 runs showed "flash events", but on
+  inspection they were townspeople walking past (HUD and scene intact). No glitches were seen in
+  v5rc2 screenshots.
+- Thermals: the hottest sensor (sys-therm) reaches about 58 °C after a minute of AC with the fan
+  curve at 70%; it takes 3 minutes to cool back to 40 °C.
+- v5rc2 has to be imported separately in GameNative (Settings > Driver Manager > Import ZIP);
+  it then appears in each game's *Graphics Driver Version* list.
+
 ## 2026-11-14: Super Mario Odyssey (Eden), v5rc2 vs v4, T30 and stock
 
 Setup: Wooded Kingdom, Resume spawns at the Odyssey ship (foggy forest), 1X resolution,

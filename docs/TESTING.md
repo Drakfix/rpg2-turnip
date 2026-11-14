@@ -76,6 +76,24 @@ shows as selected.
 python scripts/eden_driver.py --game smo --driver v5rc2   # stock, v4, v4x, v5rc, v5rc2, t30
 ```
 
+### GameNative (Assassin's Creed Revelations)
+
+- `scripts/gn_driver.py --driver v5rc2|v4|v4-263|t30` sets the game container's
+  *Graphics Driver Version* (gear > Edit container > Graphics), saves, and re-opens the config
+  to verify. The trash icon next to the gear uninstalls the game; the script never taps it.
+- `scripts/gn_acr_run.py --label X --flicker 20` launches the game and gets into Constantinople:
+  Start, A (offline notice), A (Story Mode), A (Load). Every press waits for the expected text by
+  OCR. On the save list only A (Load) is pressed; X there deletes the save. GameNative's
+  on-screen controller is off on every launch; the script detects it by pixel-checking the A/B/X
+  button rings before toggling it on in the Quick Menu.
+- Adb key events don't reach the game; taps act as a mouse.
+
+## Resting the device between runs
+
+`scripts/cooldown.py` waits until the GPU is ≤45 °C, the CPU ≤48 °C, skin (sys-therm) ≤40 °C and
+battery ≤37 °C, and exits with code 2 if that takes over 15 minutes, so batches stop instead of
+stacking heat. `--check` prints the temperatures once.
+
 ## Catching texture flicker
 
 `--flicker N` on `eden_variant.py` screen-records N seconds after loading and runs
