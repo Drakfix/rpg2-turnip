@@ -49,13 +49,16 @@ def main():
     ap.add_argument("--seconds", type=int, default=60)
     ap.add_argument("--load-wait", type=int, default=45)
     ap.add_argument("--no-record", action="store_true")
+    ap.add_argument("--flicker", type=int, default=0,
+                    help="also screen-record this many seconds and score texture flicker")
     a = ap.parse_args()
 
-    serials = [l.split()[0] for l in adb("devices").splitlines()[1:] if l.endswith("device")]
-    ip = [s for s in serials if re.match(r"\d+\.\d+\.\d+\.\d+:\d+", s)]
+    serials = [l.split("\t")[0] for l in adb("devices").splitlines()[1:] if l.endswith("\tdevice")]
     if not serials:
         sys.exit("no device")
-    os.environ["ANDROID_SERIAL"] = (ip or serials)[0]
+    # Prefer a plain IP:port, then the mDNS name without a " (2)" duplicate suffix.
+    serials.sort(key=lambda s: (not re.match(r"\d+\.\d+\.\d+\.\d+:\d+$", s), " (" in s))
+    os.environ["ANDROID_SERIAL"] = serials[0]
 
     props = {"debug.mesa.tu.debug": a.tu_debug,
              "debug.mesa.tu.autotune.algo": a.algo,
@@ -69,12 +72,18 @@ def main():
     adb("logcat", "-c")
     sh(f"am start -n {PKG}/org.yuzu.yuzu_emu.ui.main.MainActivity")
     time.sleep(5)
-    # The carousel position is not stable across restarts: filter it to BOTW first.
+    # The carousel keeps its scroll position and the search is fuzzy ("Breath" also
+    # matches Sonic X Shadow), so: clear, search the full title (BOTW ranks first),
+    # then scroll the carousel back to its first card.
+    sh("input tap 1426 125"); time.sleep(1)     # clear (x) in the search bar
     sh("input tap 860 127"); time.sleep(1)
-    sh("input text Breath"); time.sleep(1.5)
+    sh("input text Breath%sof%sthe%sWild"); time.sleep(1.5)
     sh("input keyevent BACK"); time.sleep(1.5)
+    for _ in range(4):
+        sh("input swipe 300 600 1600 600 200"); time.sleep(0.8)
+    time.sleep(1)
     shot(f"{a.label}-0-list")
-    sh("input tap 960 600")           # the centred (only matching) card
+    sh("input tap 960 600")           # the centred first card
     time.sleep(8)
     if "Loading custom settings for The Legend of Zelda: Breath of the Wild" not in adb("logcat", "-d"):
         sh(f"am force-stop {PKG}")
@@ -109,6 +118,17 @@ def main():
         if re.search(r"loading (custom|default) driver|Report: Driver|TU_DEBUG=|TU_AUTOTUNE_ALGO=|IR3_SHADER_DEBUG", line):
             print(line.strip()[:200])
     print("screenshot:", p)
+    if a.flicker:
+        # Screen-record the scene and score A->B->A pixel spikes (texture flicker).
+        remote = "/data/local/tmp/flicker.mp4"
+        sh(f"screenrecord --time-limit {a.flicker} --bit-rate 24000000 {remote}")
+        local = SCRATCH / f"{a.label}-flicker.mp4"
+        adb("pull", remote, str(local))
+        sh(f"rm -f {remote}")
+        r = subprocess.run([sys.executable, str(ROOT / "scripts" / "flicker_score.py"), str(local),
+                            "--save-map", str(SCRATCH / f"{a.label}-flickermap.png")],
+                           capture_output=True, text=True)
+        print(f"FLICKER {a.label}: {r.stdout.strip()} {r.stderr.strip()[-300:]}")
     if a.no_record:
         return
     g = subprocess.run([sys.executable, str(ROOT / "scripts" / "gamemon.py"), "--label", a.label,

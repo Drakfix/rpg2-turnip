@@ -19,14 +19,15 @@ GPU driver manager (in Eden: long-press the game → *GPU driver manager* → *I
 
 | Build | Mesa | Patches | State |
 |---|---|---|---|
-| **TUNED v4** | main `2b375c25fc` (27.0-devel), also a 26.3.0 build | 0001, 0002 | Stable. Works in Eden and GameNative (DXVK). |
-| **TUNED v5rc** | main `2b375c25fc` | 0001–0004 | Release candidate. About 10% less GPU work per frame than v4 in BOTW; only measured in BOTW so far. |
+| **TUNED v4** | main `2b375c25fc` (27.0-devel), also a 26.3.0 build | 0001 (old `profiled` version), 0002 | Works in Eden and GameNative (DXVK). Known issue: terrain flicker in BOTW. |
+| TUNED v5rc | main `2b375c25fc` | 0001 (old), 0002–0004 | Superseded by v5rc2 (same BOTW flicker). |
+| **TUNED v5rc2** | main `2b375c25fc` | 0001–0004 | Release candidate. About 10% less GPU work per frame than v4 in BOTW and no terrain flicker; only measured in BOTW so far. |
 
 ## What the patches do
 
 | Patch | Effect on the A22 | Evidence |
 |---|---|---|
-| [0001](patches/0001-tu-autotune-default-to-profiled-on-adreno-a22.patch) autotune → `profiled` | Picks SYSMEM/GMEM per render pass from measured timings instead of a bandwidth estimate. | Draw-heavy synthetic pass: GMEM 16–19 ms vs SYSMEM 7 ms. BOTW: about 3.5% less GPU work than upstream's `bandwidth`. |
+| [0001](patches/0001-tu-autotune-default-to-prefer-sysmem-on-adreno-a22.patch) autotune → `prefer_sysmem` | Renders in SYSMEM instead of guessing GMEM vs SYSMEM per render pass. (v4/v5rc used `profiled`, whose random re-tries of GMEM caused BOTW's terrain flicker.) | Draw-heavy synthetic pass: GMEM 16–19 ms vs SYSMEM 7 ms. BOTW: no one-frame flashes, same or less GPU work than `profiled` or `bandwidth`. |
 | [0002](patches/0002-ir3-skip-sin-cos-range-reduction-on-adreno-a22.patch) skip sin/cos range reduction | Uses the native sin/cos like Qualcomm's driver does. | Bit-identical to the blob over 262144 inputs; a sin/cos-heavy shader was about 17% faster. |
 | [0003](patches/0003-tu-hash-ir3-shader-debug-into-cache-uuid.patch) hash `IR3_SHADER_DEBUG` into the cache UUID | Test plumbing only: compiler options can be A/B tested without stale cached shaders. No effect when unset. | — |
 | [0004](patches/0004-ir3-skip-opt-preamble-on-adreno-a22.patch) skip `nir_opt_preamble` | Stops hoisting uniform code into the shader preamble, which costs the A22 more than it saves (descriptor prefetch and early preamble are kept). | BOTW: 15.8 vs 17.5 Mcycles/frame with the pass, on par with the blob (15.3). |

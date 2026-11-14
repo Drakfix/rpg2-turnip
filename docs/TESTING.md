@@ -60,6 +60,17 @@ python scripts/eden_botw_variant.py --label v5-optpre --ir3-debug optpreamble --
 python scripts/compare_runs.py --match v5-
 ```
 
+## Catching texture flicker
+
+`--flicker N` on `eden_botw_variant.py` screen-records N seconds after loading and runs
+`scripts/flicker_score.py`. Look at `flash_events(>=100 blocks)` and `max_flash_blocks`:
+rain and particles stay under about 50 blocks, while a surface rendered wrong for one frame
+shows hundreds. A heat map of where pixels spiked is saved next to the video.
+
+```bash
+python scripts/eden_botw_variant.py --label test --flicker 20 --no-record
+```
+
 ## Correctness checks
 
 ```bash

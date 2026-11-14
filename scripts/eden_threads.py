@@ -28,9 +28,11 @@ def main():
     ap.add_argument("--pkg", default=PKG)
     ap.add_argument("--label")
     a = ap.parse_args()
-    serials = [l.split()[0] for l in adb("devices").splitlines()[1:] if l.endswith("device")]
+    serials = [l.split("\t")[0] for l in adb("devices").splitlines()[1:] if l.endswith("\tdevice")]
     if serials:
-        os.environ["ANDROID_SERIAL"] = next((s for s in serials if re.match(r"\d+\.\d+\.\d+\.\d+:\d+", s)), serials[0])
+        # Prefer a plain IP:port, then the mDNS name without a " (2)" duplicate suffix.
+        serials.sort(key=lambda s: (not re.match(r"\d+\.\d+\.\d+\.\d+:\d+$", s), " (" in s))
+        os.environ["ANDROID_SERIAL"] = serials[0]
     pid = adb("shell", "pidof", a.pkg).strip()
     if not pid:
         raise SystemExit(f"{a.pkg} is not running")

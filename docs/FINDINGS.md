@@ -11,6 +11,35 @@ Newest first. Raw runs are in [`results/`](../results).
 - CPU: 3× A520 (cores 0–2, 1.9 GHz), 4× A720 (3–6, 2.6 GHz), 1× X4 (7, 2.8 GHz). No SVE.
 - GPU governor `msm-adreno-tz`, 255–950 MHz; it cannot be pinned without root.
 
+## 2026-11-14: BOTW terrain flicker → autotune default changed to `prefer_sysmem`
+
+Reported: ground textures in BOTW flicker on TUNED v2/v4/v5rc and on the stock driver,
+but not on MrPurple T30 or whitebelyash Turnip V2.
+
+- Eden's whole startup log (features, workarounds, per-game overrides) is identical for T30
+  and v5rc apart from the driver name, so Eden takes the same path; the driver differs.
+- `scripts/flicker_score.py` scores 12–20 s screen recordings of a static scene: it counts
+  16×16 blocks that change for exactly one frame and return. A surface rendered wrong for one
+  frame lights up hundreds at once; rain and particles stay under about 50.
+- Patch 0001's `profiled` autotune chooses GMEM or SYSMEM per render pass at random, weighted
+  by timings, and never drops below a 1% chance for the other mode. In BOTW the occasional
+  GMEM frame renders a floor/terrain pass differently: one-frame flashes of 700+ blocks.
+  T30 and V2 use upstream's `bandwidth` estimate, which doesn't flip.
+
+Rainy dock save, 20 s capture + 60 s measurement per run:
+
+| Autotune | Flash events | max blocks | GPU work / frame |
+|---|---|---|---|
+| `profiled` (v4, v5rc) | 10, 1 (plus 1, 2 in 12 s runs) | 731–775 | 12.75, 12.86 |
+| `prefer_sysmem` | 0, 0 | 19–21 | 12.63, 11.77 |
+| `bandwidth` | 0, 0 | 19–54 | 12.64, 12.52 |
+| **v5rc2** (patch 0001 → `prefer_sysmem`) | **0, 0** | 20–23 | **12.54, 11.69** |
+
+`prefer_sysmem` was chosen over `bandwidth` because it never uses GMEM (so it can't hit this
+kind of difference anywhere) and avoids the 2.5× GMEM slowdown on draw-heavy passes found on
+2026-11-10. It is still switchable with `debug.mesa.tu.autotune.algo`.
+The stock driver flickering too suggests it has a similar adaptive mode choice.
+
 ## 2026-11-13: closing the GPU gap to the stock driver (BOTW)
 
 Setup: Eden (Switch emulator), Zelda: BOTW 1.6.0, Akkala Citadel autosave, 1X resolution,
