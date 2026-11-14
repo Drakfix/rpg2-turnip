@@ -50,6 +50,20 @@ main metric is **GPU work per frame** = mean(GPU MHz × busy) / FPS, in millions
 | **TUNED v5rc** | 29.9 | **15.8** | 41% |
 
 So v5rc matches the stock driver's GPU efficiency and keeps Turnip's lower CPU cost.
+
+Super Mario Odyssey in Eden (Wooded Kingdom, 1X, 60 FPS target):
+
+| Driver | FPS | GPU clock | GPU work / frame | Eden VulkanWorker CPU |
+|---|---|---|---|---|
+| Qualcomm 762.31 (stock) | 56.7 | 500 MHz | 5.7 | 52% |
+| MrPurple T30 | 58.8 | 662 MHz | 8.7 | 38% |
+| TUNED v4 | 58.8 | 577–612 MHz | 7.2–7.5 | 37% |
+| **TUNED v5rc2** | **58.8** | **500 MHz** | **6.0** | 37% |
+
+Here FPS is limited by Eden's own GPU-emulation thread, so all Turnip builds reach about 59 FPS;
+v5rc2 gets there at the lowest GPU clock (18% less GPU work than v4, 31% less than T30), while the
+stock driver loses about 2 FPS to its higher CPU cost.
+
 Far Cry 2 in GameNative (v4 45.2 FPS vs T30 43.9) was CPU-bound, so GPU-side
 tuning has little left to give there. Full notes and every run: [docs/FINDINGS.md](docs/FINDINGS.md).
 
@@ -78,7 +92,7 @@ Everything runs over adb (wireless debugging), without root. Put Google's
   `record_run.bat` / `show_runs.bat` are double-click wrappers.
 - `scripts/eden_threads.py`: per-thread CPU of Eden (its `GPU` thread runs the driver's
   command recording).
-- `scripts/eden_botw_variant.py`: unattended A/B runs. Sets Mesa options through
+- `scripts/eden_variant.py`: unattended A/B runs. Sets Mesa options through
   `debug.mesa.*` properties, restarts Eden, loads the BOTW save through the touch overlay
   and records. `scripts/compare_runs.py` prints the table.
 

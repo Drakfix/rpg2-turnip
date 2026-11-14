@@ -1,8 +1,8 @@
 """Run one Turnip option variant in BOTW (Eden) at the Akkala Citadel autosave, unattended.
 
-    python scripts/eden_botw_variant.py --label v4-sysmem --tu-debug sysmem
-    python scripts/eden_botw_variant.py --label v4-bandwidth --algo bandwidth
-    python scripts/eden_botw_variant.py --label v4-base                 # no overrides
+    python scripts/eden_variant.py --label v4-sysmem --tu-debug sysmem
+    python scripts/eden_variant.py --label v4-bandwidth --algo bandwidth
+    python scripts/eden_variant.py --label v4-base                 # no overrides
 
 Steps: set the debug.mesa.* properties (transient, cleared on reboot; empty = unset),
 force-stop Eden (Turnip reads its options once per process), launch Eden, tap the BOTW
@@ -40,25 +40,62 @@ def shot(name):
     return p
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--label", required=True)
-    ap.add_argument("--tu-debug", default="")
-    ap.add_argument("--algo", default="")
-    ap.add_argument("--ir3-debug", default="")
-    ap.add_argument("--seconds", type=int, default=60)
-    ap.add_argument("--load-wait", type=int, default=45)
-    ap.add_argument("--no-record", action="store_true")
-    ap.add_argument("--flicker", type=int, default=0,
-                    help="also screen-record this many seconds and score texture flicker")
-    a = ap.parse_args()
+# Per-game launch profiles. search: typed into Eden's search (%s = space; the full title
+# ranks the game first). title: must appear in Eden's "Loading custom settings for" log
+# line before any input is sent. show_ctrl_y: "Show controller" in Eden's drawer (it sits
+# lower when the drawer title wraps to two lines). boot: seconds from launch to the
+# game's title menu. presses: (wait after) for each overlay-A press from the title menu
+# into the game. load_wait: the --load-wait default.
+GAMES = {
+    "botw": dict(search="Breath%sof%sthe%sWild",
+                 title="The Legend of Zelda: Breath of the Wild",
+                 show_ctrl_y=462, boot=40, presses=[3, 3, 0], load_wait=45),
+    # Resume always spawns at the Odyssey ship in the current kingdom.
+    "smo": dict(search="Super%sMario%sOdyssey", title="SUPER MARIO ODYSSEY",
+                show_ctrl_y=380, boot=40, presses=[0], load_wait=40),
+}
 
+
+def pick_device():
     serials = [l.split("\t")[0] for l in adb("devices").splitlines()[1:] if l.endswith("\tdevice")]
     if not serials:
         sys.exit("no device")
     # Prefer a plain IP:port, then the mDNS name without a " (2)" duplicate suffix.
     serials.sort(key=lambda s: (not re.match(r"\d+\.\d+\.\d+\.\d+:\d+$", s), " (" in s))
     os.environ["ANDROID_SERIAL"] = serials[0]
+
+
+def open_game_card(g):
+    """From Eden's game list, filter to the game and centre its card (no launch)."""
+    # The carousel keeps its scroll position and the search is fuzzy ("Breath" also
+    # matches Sonic X Shadow), so: clear, search the full title (it ranks first),
+    # then scroll the carousel back to its first card.
+    sh("input tap 1426 125"); time.sleep(1)     # clear (x) in the search bar
+    sh("input tap 860 127"); time.sleep(1)
+    sh(f"input text {g['search']}"); time.sleep(1.5)
+    sh("input keyevent BACK"); time.sleep(1.5)
+    for _ in range(4):
+        sh("input swipe 300 600 1600 600 200"); time.sleep(0.8)
+    time.sleep(1)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--label", required=True)
+    ap.add_argument("--game", choices=sorted(GAMES), default="botw")
+    ap.add_argument("--tu-debug", default="")
+    ap.add_argument("--algo", default="")
+    ap.add_argument("--ir3-debug", default="")
+    ap.add_argument("--seconds", type=int, default=60)
+    ap.add_argument("--load-wait", type=int, default=0, help="default: per game")
+    ap.add_argument("--no-record", action="store_true")
+    ap.add_argument("--flicker", type=int, default=0,
+                    help="also screen-record this many seconds and score texture flicker")
+    a = ap.parse_args()
+    g = GAMES[a.game]
+    load_wait = a.load_wait or g["load_wait"]
+
+    pick_device()
 
     props = {"debug.mesa.tu.debug": a.tu_debug,
              "debug.mesa.tu.autotune.algo": a.algo,
@@ -72,45 +109,34 @@ def main():
     adb("logcat", "-c")
     sh(f"am start -n {PKG}/org.yuzu.yuzu_emu.ui.main.MainActivity")
     time.sleep(5)
-    # The carousel keeps its scroll position and the search is fuzzy ("Breath" also
-    # matches Sonic X Shadow), so: clear, search the full title (BOTW ranks first),
-    # then scroll the carousel back to its first card.
-    sh("input tap 1426 125"); time.sleep(1)     # clear (x) in the search bar
-    sh("input tap 860 127"); time.sleep(1)
-    sh("input text Breath%sof%sthe%sWild"); time.sleep(1.5)
-    sh("input keyevent BACK"); time.sleep(1.5)
-    for _ in range(4):
-        sh("input swipe 300 600 1600 600 200"); time.sleep(0.8)
-    time.sleep(1)
+    open_game_card(g)
     shot(f"{a.label}-0-list")
     sh("input tap 960 600")           # the centred first card
     time.sleep(8)
-    if "Loading custom settings for The Legend of Zelda: Breath of the Wild" not in adb("logcat", "-d"):
+    if f"Loading custom settings for {g['title']}" not in adb("logcat", "-d"):
         sh(f"am force-stop {PKG}")
-        sys.exit("BOTW did not start (wrong card?); Eden stopped, no input sent")
+        sys.exit(f"{g['title']} did not start (wrong card?); Eden stopped, no input sent")
 
     def guard(step):
         if "EmulationActivity" not in sh("dumpsys window | grep mCurrentFocus"):
             shot(f"{a.label}-abort")
             sys.exit(f"Eden emulation not in the foreground before '{step}'; stopping without input")
 
-    time.sleep(32)
+    time.sleep(g["boot"] - 8)
     guard("drawer")
     sh("input swipe 5 540 960 540 400")  # Eden drawer
     time.sleep(1.5)
     guard("show controller")
-    sh("input tap 257 462")           # Show controller
+    sh(f"input tap 257 {g['show_ctrl_y']}")  # Show controller
     time.sleep(1.2)
     sh("input tap 1400 500")          # close drawer
     time.sleep(1.2)
-    guard("continue")
-    press(1460, 855); time.sleep(3)   # Continue
-    shot(f"{a.label}-1-saves")
-    guard("select save")
-    press(1460, 855); time.sleep(3)   # latest save
-    guard("start")
-    press(1460, 855)                  # Start
-    time.sleep(a.load_wait)
+    for i, wait in enumerate(g["presses"]):
+        guard(f"menu press {i + 1}")
+        press(1460, 855); time.sleep(wait)   # overlay A
+        if i == 0:
+            shot(f"{a.label}-1-menu")
+    time.sleep(load_wait)
     guard("record")
     p = shot(f"{a.label}-2-ingame")
     log = adb("logcat", "-d")

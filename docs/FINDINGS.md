@@ -11,6 +11,30 @@ Newest first. Raw runs are in [`results/`](../results).
 - CPU: 3× A520 (cores 0–2, 1.9 GHz), 4× A720 (3–6, 2.6 GHz), 1× X4 (7, 2.8 GHz). No SVE.
 - GPU governor `msm-adreno-tz`, 255–950 MHz; it cannot be pinned without root.
 
+## 2026-11-14: Super Mario Odyssey (Eden), v5rc2 vs v4, T30 and stock
+
+Setup: Wooded Kingdom, Resume spawns at the Odyssey ship (foggy forest), 1X resolution,
+60 FPS target, standing still. Drivers interleaved in two rounds (v4 → T30 → stock → v5rc2),
+each run 20 s flicker capture + 60 s measurement. Drivers switched automatically with
+`scripts/eden_driver.py`.
+
+| Driver | FPS (runs) | GPU MHz | GPU work / frame | Eden `GPU` thread | `VulkanWorker` | flashes |
+|---|---|---|---|---|---|---|
+| **v5rc2** | 58.9, 59.5, 57.9 | **500** | **6.0, 6.0, 6.1** | 81% | 37% | 0 |
+| TUNED v4 | 59.0, 58.6 | 577–612 | 7.45, 7.17 | 81–82% | 37% | 0 |
+| T30 | 58.8 | 662 | 8.70 | 81% | 38% | 0 |
+| Stock 762.31 | 56.7, 56.6 | 500 | 5.66, 5.70 | 79% | **51–53%** | 0 |
+
+- **v5rc2 needs about 18% less GPU work per frame than v4 and 31% less than T30.** The governor
+  holds it at the 500 MHz floor (v4 577–612 MHz, T30 662 MHz), so it runs cooler for the
+  same picture. It's within 6% of the stock driver.
+- **FPS is limited by Eden's GPU thread** (about 81% of a core on every Turnip build), not by
+  the GPU, so all Turnip builds land at about 59 FPS. The stock driver loses about 2.3 FPS because
+  its submission thread costs 51–53% of a core vs about 37% for Turnip.
+- No one-frame flashes with any driver here, including v4's `profiled` autotune.
+- The `500 MHz` rows are at the governor's minimum clock, so their work figure is an upper
+  bound; the real GPU need may be lower still.
+
 ## 2026-11-14: BOTW terrain flicker → autotune default changed to `prefer_sysmem`
 
 Reported: ground textures in BOTW flicker on TUNED v2/v4/v5rc and on the stock driver,

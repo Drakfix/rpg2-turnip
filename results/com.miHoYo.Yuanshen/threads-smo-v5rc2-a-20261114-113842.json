@@ -1,0 +1,22 @@
+{
+ "label": "smo-v5rc2-a",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 81.7,
+  "VulkanWorker": 36.49999999999999,
+  "CPUCore_0": 32.333333333333336,
+  "CPUCore_1": 11.866666666666665,
+  "CPUCore_2": 4.066666666666666,
+  "DSP_AudioRender": 3.8333333333333335,
+  "AudioTrack": 3.3000000000000003,
+  "HostTiming": 2.266666666666666,
+  "GPUFencingThrea": 1.8666666666666665,
+  "AudioRenderSyst": 1.7999999999999998,
+  "nvservices": 1.6000000000000003,
+  "audio": 1.6000000000000003,
+  "CPUCore_3": 1.5000000000000002,
+  "NativeEmulation": 1.4000000000000001,
+  "miHoYo.Yuanshen": 1.1333333333333335
+ }
+}

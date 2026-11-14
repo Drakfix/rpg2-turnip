@@ -51,24 +51,40 @@ Eden ignores injected key and gamepad events, so automation uses its touch overl
 - Eden sometimes crashes at launch in `NPad::ControllerUpdate` when a motion-sensor event
   arrives early. That's an Eden bug, not the driver; the scripts retry.
 
-`scripts/eden_botw_variant.py` does all of this for the BOTW benchmark save and refuses to
-send input if the expected game or screen isn't in front:
+`scripts/eden_variant.py` does all of this and refuses to send input if the expected game or
+screen isn't in front. `--game botw` (default) loads the latest BOTW save; `--game smo`
+resumes Super Mario Odyssey (it always spawns at the Odyssey ship). New games are a profile
+in its `GAMES` table:
 
 ```bash
-python scripts/eden_botw_variant.py --label v5-base
-python scripts/eden_botw_variant.py --label v5-optpre --ir3-debug optpreamble --load-wait 75
+python scripts/eden_variant.py --label v5-base
+python scripts/eden_variant.py --game smo --label smo-v5rc2 --flicker 20
+python scripts/eden_variant.py --label v5-optpre --ir3-debug optpreamble --load-wait 75
 python scripts/compare_runs.py --match v5-
+```
+
+### Switching drivers per game
+
+`scripts/eden_driver.py` selects the driver Eden uses for one game: it long-presses the game's
+card, opens the GPU driver manager and pages through the list. Card titles are read with the
+Windows built-in OCR engine (`scripts/win_ocr.ps1`, nothing to install); radio buttons are found
+by image matching (`scripts/eden_assets/`). It taps only the matching card's radio button, never
+the trash icons or the Fetch/Install buttons, and checks afterwards that the radio button really
+shows as selected.
+
+```bash
+python scripts/eden_driver.py --game smo --driver v5rc2   # stock, v4, v4x, v5rc, v5rc2, t30
 ```
 
 ## Catching texture flicker
 
-`--flicker N` on `eden_botw_variant.py` screen-records N seconds after loading and runs
+`--flicker N` on `eden_variant.py` screen-records N seconds after loading and runs
 `scripts/flicker_score.py`. Look at `flash_events(>=100 blocks)` and `max_flash_blocks`:
 rain and particles stay under about 50 blocks, while a surface rendered wrong for one frame
 shows hundreds. A heat map of where pixels spiked is saved next to the video.
 
 ```bash
-python scripts/eden_botw_variant.py --label test --flicker 20 --no-record
+python scripts/eden_variant.py --label test --flicker 20 --no-record
 ```
 
 ## Correctness checks

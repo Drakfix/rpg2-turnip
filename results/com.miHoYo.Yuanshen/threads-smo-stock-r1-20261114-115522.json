@@ -1,0 +1,21 @@
+{
+ "label": "smo-stock-r1",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 78.56666666666666,
+  "VulkanWorker": 53.06666666666667,
+  "CPUCore_0": 32.26666666666666,
+  "CPUCore_1": 12.100000000000001,
+  "GPUFencingThrea": 8.433333333333332,
+  "DSP_AudioRender": 3.9333333333333336,
+  "CPUCore_2": 3.8666666666666667,
+  "AudioTrack": 3.266666666666666,
+  "HostTiming": 2.4666666666666663,
+  "AudioRenderSyst": 1.8666666666666665,
+  "nvservices": 1.7000000000000002,
+  "audio": 1.6666666666666667,
+  "CPUCore_3": 1.5666666666666664,
+  "miHoYo.Yuanshen": 1.1
+ }
+}
