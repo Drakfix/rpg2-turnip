@@ -35,6 +35,12 @@ Rainy dock save, 20 s capture + 60 s measurement per run:
 | `bandwidth` | 0, 0 | 19–54 | 12.64, 12.52 |
 | **v5rc2** (patch 0001 → `prefer_sysmem`) | **0, 0** | 20–23 | **12.54, 11.69** |
 
+**Play-tested by the user on v5rc2:** the terrain flicker is gone, and so is a long-standing
+Eden issue where puddles and water rendered milky white unless the game was started in
+*Accurate* GPU mode and switched to *Balanced* afterwards. With v5rc2, water renders correctly
+in Balanced from the start. That points to the same cause: some water/reflection pass rendered
+differently whenever it landed in GMEM.
+
 `prefer_sysmem` was chosen over `bandwidth` because it never uses GMEM (so it can't hit this
 kind of difference anywhere) and avoids the 2.5× GMEM slowdown on draw-heavy passes found on
 2026-11-10. It is still switchable with `debug.mesa.tu.autotune.algo`.

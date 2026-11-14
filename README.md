@@ -21,7 +21,7 @@ GPU driver manager (in Eden: long-press the game → *GPU driver manager* → *I
 |---|---|---|---|
 | **TUNED v4** | main `2b375c25fc` (27.0-devel), also a 26.3.0 build | 0001 (old `profiled` version), 0002 | Works in Eden and GameNative (DXVK). Known issue: terrain flicker in BOTW. |
 | TUNED v5rc | main `2b375c25fc` | 0001 (old), 0002–0004 | Superseded by v5rc2 (same BOTW flicker). |
-| **TUNED v5rc2** | main `2b375c25fc` | 0001–0004 | Release candidate. About 10% less GPU work per frame than v4 in BOTW and no terrain flicker; only measured in BOTW so far. |
+| **TUNED v5rc2** | main `2b375c25fc` | 0001–0004 | Release candidate. About 10% less GPU work per frame than v4 in BOTW, no terrain flicker, and water no longer renders milky in Balanced mode; only tested in BOTW so far. |
 
 ## What the patches do
 
