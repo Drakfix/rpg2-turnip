@@ -26,6 +26,10 @@ DRIVERS = {
     "v5rc": r"v5rc\)",
     "v5rc2": r"v5rc2",
     "t30": r"T30",
+    # Third-party builds studied 2026-11-20 (credit: their authors; see docs/FINDINGS.md)
+    "turnipz": r"TurnipZ",                        # AlexSanz0902, TurnipZ 0.4.0
+    "steven_r2": r"27\.0\.[0O]-R2",               # StevenMXZ, Turnip v27.0.0-R2
+    "balemuni": r"apex-v2",                       # Balemuni, Apex Universal V2
 }
 SAFE_Y = (230, 800)             # below the title bar, above the Fetch/Install buttons
 
@@ -102,10 +106,10 @@ def main():
     sh(f"input tap {x + w // 2} {y + h // 2}"); time.sleep(2)
 
     # Scroll to the top, then page down until the driver's card is in the safe band.
-    for _ in range(3):
+    for _ in range(8):
         sh("input swipe 1450 350 1450 900 300"); time.sleep(0.6)
     pat = re.compile(DRIVERS[a.driver])
-    for page in range(8):
+    for page in range(16):
         time.sleep(1)
         frames = []
         for f in range(4):

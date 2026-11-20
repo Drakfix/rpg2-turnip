@@ -11,6 +11,52 @@ Newest first. Raw runs are in [`results/`](../results).
 - CPU: 3× A520 (cores 0–2, 1.9 GHz), 4× A720 (3–6, 2.6 GHz), 1× X4 (7, 2.8 GHz). No SVE.
 - GPU governor `msm-adreno-tz`, 255–950 MHz; it cannot be pinned without root.
 
+## 2026-11-20: v5 vs the newest community drivers (TurnipZ, StevenMXZ, Balemuni)
+
+Studied for ideas (credits below). Downloaded from each author's GitHub release, checked
+(only `meta.json` + the library, aarch64, standard system libraries, standard `HMI` export;
+Balemuni's zip matches the SHA-256 on their README), installed in Eden.
+
+| Driver | Mesa base | Extensions | Source |
+|---|---|---|---|
+| **TUNED v5** | 27.0-dev `2b375c25fc` | 174 | this repo |
+| TurnipZ 0.4.0 (AlexSanz0902) | 27.0-dev `3228709760` | 142 | not published |
+| Turnip v27.0.0-R2 (StevenMXZ) | 27.0-dev `2648b2059f` | 173 | build scripts and patches, GPL-3.0 |
+| Apex Universal V2 (Balemuni) | 26.3-dev `b9a2bf372b` | 140 | not published; changes described in notes |
+
+TurnipZ and Balemuni lack 32 extensions DXVK uses (maintenance4–7, synchronization2,
+dynamic_rendering, …), probably built for an older Android level (the same mistake we made
+before `PLATFORM_SDK=36`), so they're unlikely to run Windows games in GameNative. Eden doesn't
+need them.
+
+**Shader micro-benchmark** (`run_fsmodes.sh`, 950 MHz): all four tie on mul/add, sqrt, exp/log and
+div/mix; v5 is 14–16% faster on sin/cos, mix and dynamic-loop shaders and 7% on atan (patch 0002).
+All three others still apply upstream's sin/cos range reduction (error 0.61 at 1e7).
+
+**Games** (cooldown to ≤40 °C before every run, 20 s flicker capture + 60 s measurement):
+
+| Driver | Odyssey FPS | Odyssey GPU MHz | Odyssey work/frame | BOTW FPS | BOTW work/frame | flashes |
+|---|---|---|---|---|---|---|
+| **v5** | 59.6, 59.4 | **500** | **6.02, 6.03** | 29.9 | **13.8** | 0 |
+| TurnipZ 0.4.0 | 59.7, 59.9 | 624–633 | 7.47, 7.58 | 30.0 | 14.9 | 0 |
+| StevenMXZ R2 | 60.0, 59.8 | 617–632 | 7.71, 7.52 | 29.2 | 15.0 | 0 |
+| Balemuni V2 | 59.9, 59.9 | 635–641 | 8.00, 7.76 | 29.7 | 15.0 | 0 |
+
+- v5 needs **20–25% less GPU work per frame in Odyssey** and **7–8% less in BOTW** than all three,
+  and is the only one that stays at the 500 MHz clock floor. Same picture, cooler GPU.
+- FPS is equal: Odyssey at 1X is limited by Eden's GPU-emulation thread (about 81% of a core on every
+  driver), BOTW by its 30 FPS cap. v5 is about 0.4 FPS lower in Odyssey in both rounds, under 1%;
+  possibly the GPU running at its floor clock. To watch at higher resolutions.
+- Eden's submission-thread CPU is the same on all (35–38%): no CPU-side gain to borrow here.
+- No one-frame flashes for any driver at these spots.
+
+**Ideas taken from them, still to test on the G2** (credited when used):
+- StevenMXZ: request UBWC-compressed swapchain buffers like Qualcomm's driver does
+  (`add_ubwc_swapchain_usage.py`), and check the gralloc UBWC detection (`fix_gralloc_flushall.py`).
+  GPL-3.0: we'll write our own implementation, or keep any copied code GPL-3.0 and marked as such.
+- Balemuni: ir3 Global Code Motion (`debug.mesa.gcm=1`, already in Mesa, off by default) and a
+  4 GB shader cache.
+
 ## 2026-11-20: TUNED v5 released
 
 v5-rc2 promoted to **TUNED v5** (GitHub release `v5`, marked Latest). Same driver binary as

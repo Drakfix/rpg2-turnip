@@ -1,0 +1,22 @@
+{
+ "label": "o3-smo-turnipz-r2",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 81.03333333333333,
+  "VulkanWorker": 37.96666666666667,
+  "CPUCore_0": 33.56666666666667,
+  "CPUCore_1": 11.9,
+  "CPUCore_2": 4.233333333333333,
+  "DSP_AudioRender": 3.8000000000000003,
+  "AudioTrack": 2.4333333333333336,
+  "HostTiming": 2.4000000000000004,
+  "GPUFencingThrea": 1.9333333333333336,
+  "AudioRenderSyst": 1.7666666666666668,
+  "nvservices": 1.6000000000000003,
+  "audio": 1.5666666666666667,
+  "NativeEmulation": 1.4333333333333333,
+  "CPUCore_3": 1.4333333333333333,
+  "miHoYo.Yuanshen": 1.0333333333333334
+ }
+}

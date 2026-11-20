@@ -117,8 +117,20 @@ The fan research that began here became its own project:
 ## Credits
 
 Turnip and ir3 are by the Mesa / freedreno developers; this repo only carries small
-patches on top. Community drivers used for comparison: MrPurple (T30), StevenMXZ
-(26.2 R4, 26.3 R3) and whitebelyash (Turnip 26.0).
+patches on top.
+
+Community drivers we benchmarked against and studied for ideas (thank you!):
+- MrPurple666: [purple-turnip](https://github.com/MrPurple666/purple-turnip) (T30)
+- StevenMXZ: [Adreno-Tools-Drivers](https://github.com/StevenMXZ/Adreno-Tools-Drivers)
+  (26.2 R4, 26.3 R3, 27.0.0-R2). His notes on UBWC swapchain buffers are a lead we're following.
+- whitebelyash: [AdrenoToolsDrivers](https://github.com/whitebelyash/AdrenoToolsDrivers) (Turnip 26.0)
+- AlexSanz0902: [TurnipZ](https://github.com/AlexSanz0902/turnip-sd865-z) (0.4.0)
+- Balemuni: [Balemuni's Aurora](https://github.com/Balemuni/Balemunis-Aurora) (Apex Universal V2).
+  The GCM and shader-cache ideas we're testing come from its notes.
+- K11MCH1: [AdrenoToolsDrivers](https://github.com/K11MCH1/AdrenoToolsDrivers)
+
+Any idea or code we take from another driver is credited in the patch that uses it.
+Comparisons: [docs/FINDINGS.md](docs/FINDINGS.md).
 
 ## License
 

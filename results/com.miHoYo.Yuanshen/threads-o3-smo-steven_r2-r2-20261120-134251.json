@@ -1,0 +1,22 @@
+{
+ "label": "o3-smo-steven_r2-r2",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 82.13333333333334,
+  "VulkanWorker": 36.43333333333333,
+  "CPUCore_0": 31.96666666666667,
+  "CPUCore_1": 11.566666666666668,
+  "CPUCore_2": 3.9333333333333336,
+  "DSP_AudioRender": 3.7000000000000006,
+  "AudioTrack": 2.466666666666667,
+  "HostTiming": 2.3333333333333335,
+  "GPUFencingThrea": 1.8666666666666665,
+  "AudioRenderSyst": 1.7666666666666668,
+  "nvservices": 1.5999999999999999,
+  "audio": 1.5333333333333332,
+  "CPUCore_3": 1.3666666666666665,
+  "NativeEmulation": 1.2666666666666666,
+  "miHoYo.Yuanshen": 1.0333333333333334
+ }
+}
