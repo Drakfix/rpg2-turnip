@@ -11,6 +11,12 @@ Newest first. Raw runs are in [`results/`](../results).
 - CPU: 3× A520 (cores 0–2, 1.9 GHz), 4× A720 (3–6, 2.6 GHz), 1× X4 (7, 2.8 GHz). No SVE.
 - GPU governor `msm-adreno-tz`, 255–950 MHz; it cannot be pinned without root.
 
+## 2026-11-20: TUNED v5 released
+
+v5-rc2 promoted to **TUNED v5** (GitHub release `v5`, marked Latest). Same driver binary as
+v5-rc2 (sha256 `b18c8794a70eca71…`), only the package name in `meta.json` changed. Verified in
+BOTW, Super Mario Odyssey and AC Revelations (sections below).
+
 ## 2026-11-14: Assassin's Creed Revelations (GameNative / DXVK), v5rc2 vs T30 and v4
 
 Setup: Constantinople square where the save loads, Proton 10 arm64ec + DXVK + Gamescope,

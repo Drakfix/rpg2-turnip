@@ -19,9 +19,9 @@ GPU driver manager (in Eden: long-press the game → *GPU driver manager* → *I
 
 | Build | Mesa | Patches | State |
 |---|---|---|---|
-| **TUNED v4** | main `2b375c25fc` (27.0-devel), also a 26.3.0 build | 0001 (old `profiled` version), 0002 | Works in Eden and GameNative (DXVK). Known issue: terrain flicker in BOTW. |
-| TUNED v5rc | main `2b375c25fc` | 0001 (old), 0002–0004 | Superseded by v5rc2 (same BOTW flicker). |
-| **TUNED v5rc2** | main `2b375c25fc` | 0001–0004 | Release candidate. About 10% less GPU work per frame than v4 in BOTW, no terrain flicker, and water no longer renders milky in Balanced mode; only tested in BOTW so far. |
+| **TUNED v5** (recommended) | main `2b375c25fc` (27.0-devel) | 0001–0004 | Tested in BOTW, Super Mario Odyssey (Eden) and AC Revelations (GameNative/DXVK). 10–18% less GPU work per frame than v4, no BOTW terrain flicker, water no longer milky in Eden's Balanced mode. Same binary as v5-rc2. |
+| TUNED v4 | main `2b375c25fc`, also a 26.3.0 build | 0001 (old `profiled` version), 0002 | Known issue: terrain flicker in BOTW. Kept for comparison. |
+| TUNED v5rc / v5rc2 | main `2b375c25fc` | — | Release candidates, superseded by v5. |
 
 ## What the patches do
 
@@ -47,9 +47,9 @@ main metric is **GPU work per frame** = mean(GPU MHz × busy) / FPS, in millions
 | Qualcomm 762.31 (stock) | 28.9 | 15.3 | 69% |
 | MrPurple T30 | 29.9 | 19.9 | 41% |
 | TUNED v4 | 29.9 | 16.7–17.5 | 41% |
-| **TUNED v5rc** | 29.9 | **15.8** | 41% |
+| **TUNED v5** | 29.9 | **15.8** | 41% |
 
-So v5rc matches the stock driver's GPU efficiency and keeps Turnip's lower CPU cost.
+So v5 matches the stock driver's GPU efficiency and keeps Turnip's lower CPU cost.
 
 Super Mario Odyssey in Eden (Wooded Kingdom, 1X, 60 FPS target):
 
@@ -58,14 +58,15 @@ Super Mario Odyssey in Eden (Wooded Kingdom, 1X, 60 FPS target):
 | Qualcomm 762.31 (stock) | 56.7 | 500 MHz | 5.7 | 52% |
 | MrPurple T30 | 58.8 | 662 MHz | 8.7 | 38% |
 | TUNED v4 | 58.8 | 577–612 MHz | 7.2–7.5 | 37% |
-| **TUNED v5rc2** | **58.8** | **500 MHz** | **6.0** | 37% |
+| **TUNED v5** | **58.8** | **500 MHz** | **6.0** | 37% |
 
 Here FPS is limited by Eden's own GPU-emulation thread, so all Turnip builds reach about 59 FPS;
-v5rc2 gets there at the lowest GPU clock (18% less GPU work than v4, 31% less than T30), while the
+v5 gets there at the lowest GPU clock (18% less GPU work than v4, 31% less than T30), while the
 stock driver loses about 2 FPS to its higher CPU cost.
 
-Far Cry 2 in GameNative (v4 45.2 FPS vs T30 43.9) was CPU-bound, so GPU-side
-tuning has little left to give there. Full notes and every run: [docs/FINDINGS.md](docs/FINDINGS.md).
+Windows games in GameNative are limited by the CPU (x86 translation): Assassin's Creed
+Revelations runs at 35–38 FPS on v5, T30 and v4 alike, and Far Cry 2 at 44–45 FPS on v4 and
+T30. v5 brings no regression there, and GPU-side tuning has little left to give. Full notes and every run: [docs/FINDINGS.md](docs/FINDINGS.md).
 
 ## Building
 
