@@ -1,0 +1,20 @@
+{
+ "label": "gcm-botw-0-r1",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 71.43333333333334,
+  "VulkanWorker": 40.23333333333333,
+  "CPUCore_2": 35.2,
+  "CPUCore_1": 30.599999999999994,
+  "CPUCore_0": 28.599999999999998,
+  "HostTiming": 12.733333333333334,
+  "GPUFencingThrea": 4.833333333333334,
+  "DSP_AudioRender": 3.6,
+  "AudioTrack": 2.3666666666666667,
+  "NativeEmulation": 1.8666666666666665,
+  "audio": 1.8666666666666665,
+  "AudioRenderSyst": 1.7333333333333334,
+  "miHoYo.Yuanshen": 1.1
+ }
+}

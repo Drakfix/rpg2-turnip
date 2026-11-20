@@ -1,0 +1,22 @@
+{
+ "label": "gcm-smo-0-r2",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 80.56666666666668,
+  "VulkanWorker": 36.300000000000004,
+  "CPUCore_0": 33.06666666666666,
+  "CPUCore_1": 11.866666666666665,
+  "CPUCore_2": 4.1,
+  "DSP_AudioRender": 3.8000000000000003,
+  "AudioTrack": 2.3666666666666667,
+  "HostTiming": 2.0666666666666664,
+  "GPUFencingThrea": 1.9000000000000001,
+  "AudioRenderSyst": 1.7666666666666668,
+  "nvservices": 1.6666666666666667,
+  "audio": 1.5,
+  "CPUCore_3": 1.4666666666666668,
+  "NativeEmulation": 1.2999999999999998,
+  "miHoYo.Yuanshen": 1.0333333333333334
+ }
+}

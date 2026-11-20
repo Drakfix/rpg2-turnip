@@ -11,6 +11,25 @@ Newest first. Raw runs are in [`results/`](../results).
 - CPU: 3× A520 (cores 0–2, 1.9 GHz), 4× A720 (3–6, 2.6 GHz), 1× X4 (7, 2.8 GHz). No SVE.
 - GPU governor `msm-adreno-tz`, 255–950 MHz; it cannot be pinned without root.
 
+## 2026-11-20: ir3 Global Code Motion (idea from Balemuni's Apex notes): no effect
+
+`nir_opt_gcm` is already in Mesa's ir3 optimisation loop, off by default, and switched with
+`GCM=1` (with value numbering, what Balemuni ships) or `GCM=2`. On Android that's
+`debug.mesa.gcm`. It isn't part of any cache key, so every run used a unique `IR3_SHADER_DEBUG`
+string (patch 0003) to force fresh shaders. Driver: v5. Cooldown before every run.
+
+| Setting | Odyssey FPS | Odyssey GPU busy @ 500 MHz | BOTW FPS | BOTW work/frame |
+|---|---|---|---|---|
+| GCM off | 59.9, 59.8 | 71.8%, 72.1% | 30.0, 30.0 | 13.74, 14.05 |
+| GCM=1 | 59.9, 59.9 | 71.9%, 71.7% | 30.0, 29.1 | 14.05, 13.88 |
+| GCM=2 | 59.6, 59.8 | 71.7%, 71.5% | — | — |
+
+All within run-to-run noise; shader micro-benchmarks unchanged too, and no flicker. Not adopted.
+Side result: v5's Odyssey FPS here (59.8–59.9) matches the other drivers, so the 0.4 FPS gap in the
+comparison below was noise.
+Note: Odyssey at 1X keeps the GPU at its 500 MHz floor, so only GPU busy % can show a difference
+there. Future GPU-side tests in Odyssey should use a higher resolution.
+
 ## 2026-11-20: v5 vs the newest community drivers (TurnipZ, StevenMXZ, Balemuni)
 
 Studied for ideas (credits below). Downloaded from each author's GitHub release, checked
@@ -54,7 +73,7 @@ All three others still apply upstream's sin/cos range reduction (error 0.61 at 1
 - StevenMXZ: request UBWC-compressed swapchain buffers like Qualcomm's driver does
   (`add_ubwc_swapchain_usage.py`), and check the gralloc UBWC detection (`fix_gralloc_flushall.py`).
   GPL-3.0: we'll write our own implementation, or keep any copied code GPL-3.0 and marked as such.
-- Balemuni: ir3 Global Code Motion (`debug.mesa.gcm=1`, already in Mesa, off by default) and a
+- Balemuni: ir3 Global Code Motion (tested 2026-11-20, no effect, see above) and a
   4 GB shader cache.
 
 ## 2026-11-20: TUNED v5 released

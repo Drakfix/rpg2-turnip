@@ -89,6 +89,8 @@ def main():
     ap.add_argument("--tu-debug", default="")
     ap.add_argument("--algo", default="")
     ap.add_argument("--ir3-debug", default="")
+    ap.add_argument("--gcm", default="", help="1 or 2: ir3 nir_opt_gcm (not in any cache key: "
+                    "pair with a unique --ir3-debug value so shaders recompile)")
     ap.add_argument("--seconds", type=int, default=60)
     ap.add_argument("--load-wait", type=int, default=0, help="default: per game")
     ap.add_argument("--no-record", action="store_true")
@@ -102,7 +104,8 @@ def main():
 
     props = {"debug.mesa.tu.debug": a.tu_debug,
              "debug.mesa.tu.autotune.algo": a.algo,
-             "debug.mesa.ir3.shader.debug": a.ir3_debug}
+             "debug.mesa.ir3.shader.debug": a.ir3_debug,
+             "debug.mesa.gcm": a.gcm}               # ir3 Global Code Motion (idea: Balemuni)
     for k, v in props.items():
         sh(f"setprop {k} '{v}'")
     print("props:", {k: sh(f"getprop {k}").strip() for k in props})
