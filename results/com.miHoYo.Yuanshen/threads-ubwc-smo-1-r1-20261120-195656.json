@@ -1,0 +1,22 @@
+{
+ "label": "ubwc-smo-1-r1",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 81.39999999999999,
+  "VulkanWorker": 35.73333333333334,
+  "CPUCore_0": 33.5,
+  "CPUCore_1": 11.700000000000001,
+  "CPUCore_2": 3.8000000000000003,
+  "DSP_AudioRender": 3.733333333333333,
+  "AudioTrack": 2.4000000000000004,
+  "HostTiming": 2.2000000000000006,
+  "GPUFencingThrea": 1.8666666666666665,
+  "AudioRenderSyst": 1.7666666666666668,
+  "nvservices": 1.666666666666667,
+  "audio": 1.5333333333333332,
+  "CPUCore_3": 1.366666666666667,
+  "NativeEmulation": 1.2999999999999998,
+  "miHoYo.Yuanshen": 1.0
+ }
+}

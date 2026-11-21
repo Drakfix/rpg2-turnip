@@ -1,0 +1,20 @@
+{
+ "label": "ubwc-botw-1-r1",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 71.83333333333333,
+  "VulkanWorker": 40.53333333333333,
+  "CPUCore_2": 35.53333333333333,
+  "CPUCore_1": 30.099999999999998,
+  "CPUCore_0": 27.86666666666667,
+  "HostTiming": 12.666666666666666,
+  "GPUFencingThrea": 4.833333333333333,
+  "DSP_AudioRender": 3.633333333333334,
+  "AudioTrack": 2.3000000000000003,
+  "NativeEmulation": 1.866666666666667,
+  "audio": 1.866666666666667,
+  "AudioRenderSyst": 1.7999999999999998,
+  "miHoYo.Yuanshen": 1.0666666666666667
+ }
+}

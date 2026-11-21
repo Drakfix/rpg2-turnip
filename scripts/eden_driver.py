@@ -25,6 +25,7 @@ DRIVERS = {
     "v4x": r"v4x",
     "v5rc": r"v5rc\)",
     "v5rc2": r"v5rc2",
+    "v5ub": r"v5ub",                              # v5 + patch 0005 (UBWC swapchain, opt-in prop)
     "t30": r"T30",
     # Third-party builds studied 2026-11-20 (credit: their authors; see docs/FINDINGS.md)
     "turnipz": r"TurnipZ",                        # AlexSanz0902, TurnipZ 0.4.0

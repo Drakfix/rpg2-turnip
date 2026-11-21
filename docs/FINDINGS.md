@@ -11,6 +11,44 @@ Newest first. Raw runs are in [`results/`](../results).
 - CPU: 3× A520 (cores 0–2, 1.9 GHz), 4× A720 (3–6, 2.6 GHz), 1× X4 (7, 2.8 GHz). No SVE.
 - GPU governor `msm-adreno-tz`, 255–950 MHz; it cannot be pinned without root.
 
+## 2026-11-21: UBWC swapchain buffers (idea from StevenMXZ): −13 to −16% GPU work
+
+**Finding.** `dumpsys SurfaceFlinger` with Odyssey running in Eden:
+
+| Driver | Game-window buffers | Layer composition |
+|---|---|---|
+| Stock Qualcomm 762.31 | usage `0x10000b00`, `RGBA_8888_UBWC`, compressed | `DEVICE/DEVICE` |
+| Turnip (v5, and every community Turnip) | usage `0xb00`, `RGBA_8888`, linear | `DEVICE/CLIENT` |
+
+Qualcomm's driver adds gralloc's private usage bit `0x10000000` (Qualcomm "alloc UBWC") to
+swapchain buffers; Mesa doesn't. The G2's panel is mounted rotated 90°, and with linear buffers the
+display hardware doesn't take the game layer: SurfaceFlinger falls back to compositing (copying and
+rotating) the full 1920×1080 frame **on the GPU, every frame**. StevenMXZ's patch notes
+(`add_ubwc_swapchain_usage.py`) pointed us at the missing usage bit.
+
+**Patch 0005** (independent implementation; currently in `patches-exp/`, opt-in with
+`debug.mesa.android.ubwc.swapchain=1`): adds the bit for colour-attachment swapchain buffers in all
+three paths Android uses (`GetSwapchainGrallocUsage`, `…Usage2`, and the
+`VkAndroidHardwareBufferUsageANDROID` query, only for optimal-tiled, GPU-framebuffer buffers without
+CPU access). Mesa's import side already reads Qualcomm's gralloc handle (`gmsm` marker + UBWC flag
+`0x08000000`) and switches the image to `DRM_FORMAT_MOD_QCOM_COMPRESSED`. On the G2 the log shows
+all four swapchain buffers imported as UBWC, SurfaceFlinger reports `RGBA_8888_UBWC` +
+`DEVICE/DEVICE` like the stock driver, and the picture is correct.
+
+**Measured** (v5 + 0005, switch off vs on, interleaved, cooldown before every run):
+
+| | off | **on** |
+|---|---|---|
+| Odyssey FPS | 59.6, 59.7 | 59.7, 60.0 |
+| Odyssey GPU busy @ 500 MHz | 72.0%, 71.8% | **60.5%, 60.8%** |
+| Odyssey work/frame | 6.04, 6.03 | **5.06, 5.07 (−16%)** |
+| BOTW GPU clock | 597, 599 MHz | **516, 514 MHz** |
+| BOTW work/frame | 13.53, 13.56 | **11.77, 11.75 (−13%)** |
+
+No flicker, picture correct. In Odyssey this puts Turnip below the stock driver (5.7). The gain is
+GPU time the system compositor no longer spends; it should apply to every Vulkan game in a full-screen
+window on the G2.
+
 ## 2026-11-20: ir3 Global Code Motion (idea from Balemuni's Apex notes): no effect
 
 `nir_opt_gcm` is already in Mesa's ir3 optimisation loop, off by default, and switched with
@@ -70,7 +108,7 @@ All three others still apply upstream's sin/cos range reduction (error 0.61 at 1
 - No one-frame flashes for any driver at these spots.
 
 **Ideas taken from them, still to test on the G2** (credited when used):
-- StevenMXZ: request UBWC-compressed swapchain buffers like Qualcomm's driver does
+- StevenMXZ: request UBWC-compressed swapchain buffers like Qualcomm's driver does (done 2026-11-21, patch 0005, see above)
   (`add_ubwc_swapchain_usage.py`), and check the gralloc UBWC detection (`fix_gralloc_flushall.py`).
   GPL-3.0: we'll write our own implementation, or keep any copied code GPL-3.0 and marked as such.
 - Balemuni: ir3 Global Code Motion (tested 2026-11-20, no effect, see above) and a

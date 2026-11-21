@@ -1,0 +1,112 @@
+diff --git a/src/vulkan/runtime/vk_android.c b/src/vulkan/runtime/vk_android.c
+index 32ff550d..39d0d171 100644
+--- a/src/vulkan/runtime/vk_android.c
++++ b/src/vulkan/runtime/vk_android.c
+@@ -41,6 +41,7 @@
+ #include "util/libsync.h"
+ #include "util/log.h"
+ #include "util/os_file.h"
++#include "util/os_misc.h"
+ #include "util/u_gralloc/u_gralloc.h"
+ 
+ #include <hardware/gralloc.h>
+@@ -137,6 +138,41 @@ vk_android_hal_open(const struct hw_module_t *mod, const char *id,
+    return 0;
+ }
+ 
++/* RPG2: request UBWC-compressed swapchain buffers from Qualcomm gralloc.
++ *
++ * Qualcomm's own Vulkan driver adds the vendor usage bit 0x10000000 (gralloc
++ * GRALLOC_USAGE_PRIVATE_0, "PRIVATE_ALLOC_UBWC" in Qualcomm gralloc) to swapchain
++ * buffers, so they are allocated UBWC-compressed. Mesa doesn't, so Turnip's
++ * swapchain buffers are linear. On the Retroid Pocket G2 (Adreno A22, panel
++ * mounted rotated 90 degrees) the display hardware then can't scan the linear
++ * layer out directly: SurfaceFlinger composites it on the GPU every frame
++ * ("composition: DEVICE/CLIENT" vs "DEVICE/DEVICE" for the stock driver).
++ *
++ * The import side already handles UBWC buffers (u_gralloc reads the UBWC flag from
++ * the gralloc handle, Turnip switches to DRM_FORMAT_MOD_QCOM_COMPRESSED).
++ *
++ * Idea credit: StevenMXZ (github.com/StevenMXZ/Adreno-Tools-Drivers,
++ * add_ubwc_swapchain_usage.py) found the blob's extra usage bit. This is an
++ * independent implementation.
++ *
++ * Opt-in for now: MESA_ANDROID_UBWC_SWAPCHAIN=1, or on Android
++ * `setprop debug.mesa.android.ubwc.swapchain 1`.
++ */
++#define VK_ANDROID_QCOM_UBWC_USAGE 0x10000000ull
++
++static bool
++vk_android_want_ubwc_swapchain(void)
++{
++   static int enabled = -1;
++   if (enabled < 0) {
++      const char *v = os_get_option("MESA_ANDROID_UBWC_SWAPCHAIN");
++      enabled = v && v[0] == '1';
++      if (enabled)
++         mesa_logi("RPG2: requesting UBWC swapchain buffers (usage bit 0x10000000)");
++   }
++   return enabled;
++}
++
+ static VkResult
+ vk_gralloc_to_drm_explicit_layout(
+    struct u_gralloc_buffer_handle *in_hnd,
+@@ -181,6 +217,15 @@ vk_gralloc_to_drm_explicit_layout(
+ 
+    out->drmFormatModifier = info.modifier;
+    out->drmFormatModifierPlaneCount = info.num_planes;
++
++   if (vk_android_want_ubwc_swapchain()) {
++      static int logged = 0;
++      if (logged++ < 8)
++         mesa_logi("RPG2: imported gralloc buffer fourcc 0x%x stride %u modifier 0x%" PRIx64 " (%s)",
++                   info.drm_fourcc, info.strides[0], info.modifier,
++                   info.modifier == DRM_FORMAT_MOD_QCOM_COMPRESSED ? "UBWC" :
++                   info.modifier == DRM_FORMAT_MOD_LINEAR ? "linear" : "other");
++   }
+    for (size_t i = 0; i < info.num_planes; i++) {
+       out_layouts[i].offset = info.offsets[i];
+       out_layouts[i].rowPitch = info.strides[i];
+@@ -453,6 +498,10 @@ setup_gralloc0_usage(VkFormat format, VkImageUsageFlags image_usage,
+    if (!gralloc_usage)
+       return VK_ERROR_FORMAT_NOT_SUPPORTED;
+ 
++   if ((image_usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) &&
++       vk_android_want_ubwc_swapchain())
++      gralloc_usage |= (int)GRALLOC_USAGE_PRIVATE_0;
++
+    *out_gralloc_usage = gralloc_usage;
+ 
+    return VK_SUCCESS;
+@@ -658,6 +707,8 @@ vk_common_GetSwapchainGrallocUsage2ANDROID(
+       *grallocProducerUsage |= GRALLOC1_PRODUCER_USAGE_GPU_RENDER_TARGET;
+    if (gralloc_usage & GRALLOC_USAGE_HW_TEXTURE)
+       *grallocConsumerUsage |= GRALLOC1_CONSUMER_USAGE_GPU_TEXTURE;
++   if (gralloc_usage & GRALLOC_USAGE_PRIVATE_0)
++      *grallocProducerUsage |= GRALLOC1_PRODUCER_USAGE_PRIVATE_0;
+ 
+    /* for front buffer rendering */
+    if (swapchainImageUsage & VK_SWAPCHAIN_IMAGE_USAGE_SHARED_BIT_ANDROID)
+@@ -1346,8 +1397,19 @@ vk_android_get_ahb_image_properties(
+ 
+    ahb_usage_props =
+       vk_find_struct(props->pNext, ANDROID_HARDWARE_BUFFER_USAGE_ANDROID);
+-   if (ahb_usage_props)
+-      ahb_usage_props->androidHardwareBufferUsage = ahb_usage;
++   if (ahb_usage_props) {
++      uint64_t usage = ahb_usage;
++      /* Only for optimally tiled, GPU-rendered buffers that nothing forced linear
++       * (CPU_WRITE_RARELY is how Mesa forces a linear gralloc allocation).
++       */
++      if (vk_android_want_ubwc_swapchain() &&
++          info->tiling == VK_IMAGE_TILING_OPTIMAL &&
++          (usage & AHARDWAREBUFFER_USAGE_GPU_FRAMEBUFFER) &&
++          !(usage & AHARDWAREBUFFER_USAGE_CPU_WRITE_MASK) &&
++          !(usage & AHARDWAREBUFFER_USAGE_CPU_READ_MASK))
++         usage |= VK_ANDROID_QCOM_UBWC_USAGE;
++      ahb_usage_props->androidHardwareBufferUsage = usage;
++   }
+ 
+    return VK_SUCCESS;
+ }
