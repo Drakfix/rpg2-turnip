@@ -19,6 +19,7 @@ GPU driver manager (in Eden: long-press the game → *GPU driver manager* → *I
 
 | Build | Mesa | Patches | State |
 |---|---|---|---|
+| **TUNED v6-rc1** (pre-release) | main `2b375c25fc` (27.0-devel) | 0001–0005 | v5 + UBWC screen buffers: a further 13–16% less GPU work in Eden (Odyssey, BOTW), because the screen no longer needs a GPU copy per frame. GameNative: same as v5. |
 | **TUNED v5** (recommended) | main `2b375c25fc` (27.0-devel) | 0001–0004 | Tested in BOTW, Super Mario Odyssey (Eden) and AC Revelations (GameNative/DXVK). 10–18% less GPU work per frame than v4, no BOTW terrain flicker, water no longer milky in Eden's Balanced mode. Same binary as v5-rc2. |
 | TUNED v4 | main `2b375c25fc`, also a 26.3.0 build | 0001 (old `profiled` version), 0002 | Known issue: terrain flicker in BOTW. Kept for comparison. |
 | TUNED v5rc / v5rc2 | main `2b375c25fc` | — | Release candidates, superseded by v5. |
@@ -31,6 +32,7 @@ GPU driver manager (in Eden: long-press the game → *GPU driver manager* → *I
 | [0002](patches/0002-ir3-skip-sin-cos-range-reduction-on-adreno-a22.patch) skip sin/cos range reduction | Uses the native sin/cos like Qualcomm's driver does. | Bit-identical to the blob over 262144 inputs; a sin/cos-heavy shader was about 17% faster. |
 | [0003](patches/0003-tu-hash-ir3-shader-debug-into-cache-uuid.patch) hash `IR3_SHADER_DEBUG` into the cache UUID | Test plumbing only: compiler options can be A/B tested without stale cached shaders. No effect when unset. | — |
 | [0004](patches/0004-ir3-skip-opt-preamble-on-adreno-a22.patch) skip `nir_opt_preamble` | Stops hoisting uniform code into the shader preamble, which costs the A22 more than it saves (descriptor prefetch and early preamble are kept). | BOTW: 15.8 vs 17.5 Mcycles/frame with the pass, on par with the blob (15.3). |
+| [0005](patches/0005-vk-android-request-ubwc-swapchain-buffers.patch) UBWC swapchain buffers | Asks gralloc for compressed screen buffers (usage bit `0x10000000`) like Qualcomm's driver. With linear buffers the G2's rotated panel forces Android to composite the game on the GPU every frame. Idea: StevenMXZ; own implementation. `debug.mesa.android.ubwc.swapchain=0` disables it. | Odyssey 6.04 → 5.06 Mcycles/frame (−16%, below stock), BOTW 13.5 → 11.8 (−13%); `DEVICE/DEVICE` composition like stock. |
 
 All builds also use `-mcpu=cortex-a720+nosve` (the G2's CPU has no SVE), which cut
 command-recording CPU time by about 6%, and `-Dplatform-sdk-version=36` so DXVK
