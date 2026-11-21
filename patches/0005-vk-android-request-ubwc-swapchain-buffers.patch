@@ -1,5 +1,5 @@
 diff --git a/src/vulkan/runtime/vk_android.c b/src/vulkan/runtime/vk_android.c
-index 32ff550d..39d0d171 100644
+index 32ff550d..b145200a 100644
 --- a/src/vulkan/runtime/vk_android.c
 +++ b/src/vulkan/runtime/vk_android.c
 @@ -41,6 +41,7 @@
@@ -10,7 +10,7 @@ index 32ff550d..39d0d171 100644
  #include "util/u_gralloc/u_gralloc.h"
  
  #include <hardware/gralloc.h>
-@@ -137,6 +138,41 @@ vk_android_hal_open(const struct hw_module_t *mod, const char *id,
+@@ -137,6 +138,42 @@ vk_android_hal_open(const struct hw_module_t *mod, const char *id,
     return 0;
  }
  
@@ -31,8 +31,9 @@ index 32ff550d..39d0d171 100644
 + * add_ubwc_swapchain_usage.py) found the blob's extra usage bit. This is an
 + * independent implementation.
 + *
-+ * Opt-in for now: MESA_ANDROID_UBWC_SWAPCHAIN=1, or on Android
-+ * `setprop debug.mesa.android.ubwc.swapchain 1`.
++ * Measured on the G2: -16% GPU work per frame in Super Mario Odyssey, -13% in
++ * Zelda BOTW (Eden), picture identical. On by default; MESA_ANDROID_UBWC_SWAPCHAIN=0
++ * (Android: `setprop debug.mesa.android.ubwc.swapchain 0`) turns it off.
 + */
 +#define VK_ANDROID_QCOM_UBWC_USAGE 0x10000000ull
 +
@@ -42,7 +43,7 @@ index 32ff550d..39d0d171 100644
 +   static int enabled = -1;
 +   if (enabled < 0) {
 +      const char *v = os_get_option("MESA_ANDROID_UBWC_SWAPCHAIN");
-+      enabled = v && v[0] == '1';
++      enabled = !(v && v[0] == '0');
 +      if (enabled)
 +         mesa_logi("RPG2: requesting UBWC swapchain buffers (usage bit 0x10000000)");
 +   }
@@ -52,7 +53,7 @@ index 32ff550d..39d0d171 100644
  static VkResult
  vk_gralloc_to_drm_explicit_layout(
     struct u_gralloc_buffer_handle *in_hnd,
-@@ -181,6 +217,15 @@ vk_gralloc_to_drm_explicit_layout(
+@@ -181,6 +218,15 @@ vk_gralloc_to_drm_explicit_layout(
  
     out->drmFormatModifier = info.modifier;
     out->drmFormatModifierPlaneCount = info.num_planes;
@@ -68,7 +69,7 @@ index 32ff550d..39d0d171 100644
     for (size_t i = 0; i < info.num_planes; i++) {
        out_layouts[i].offset = info.offsets[i];
        out_layouts[i].rowPitch = info.strides[i];
-@@ -453,6 +498,10 @@ setup_gralloc0_usage(VkFormat format, VkImageUsageFlags image_usage,
+@@ -453,6 +499,10 @@ setup_gralloc0_usage(VkFormat format, VkImageUsageFlags image_usage,
     if (!gralloc_usage)
        return VK_ERROR_FORMAT_NOT_SUPPORTED;
  
@@ -79,7 +80,7 @@ index 32ff550d..39d0d171 100644
     *out_gralloc_usage = gralloc_usage;
  
     return VK_SUCCESS;
-@@ -658,6 +707,8 @@ vk_common_GetSwapchainGrallocUsage2ANDROID(
+@@ -658,6 +708,8 @@ vk_common_GetSwapchainGrallocUsage2ANDROID(
        *grallocProducerUsage |= GRALLOC1_PRODUCER_USAGE_GPU_RENDER_TARGET;
     if (gralloc_usage & GRALLOC_USAGE_HW_TEXTURE)
        *grallocConsumerUsage |= GRALLOC1_CONSUMER_USAGE_GPU_TEXTURE;
@@ -88,7 +89,7 @@ index 32ff550d..39d0d171 100644
  
     /* for front buffer rendering */
     if (swapchainImageUsage & VK_SWAPCHAIN_IMAGE_USAGE_SHARED_BIT_ANDROID)
-@@ -1346,8 +1397,19 @@ vk_android_get_ahb_image_properties(
+@@ -1346,8 +1398,19 @@ vk_android_get_ahb_image_properties(
  
     ahb_usage_props =
        vk_find_struct(props->pNext, ANDROID_HARDWARE_BUFFER_USAGE_ANDROID);

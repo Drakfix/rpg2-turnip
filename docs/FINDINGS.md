@@ -45,7 +45,12 @@ all four swapchain buffers imported as UBWC, SurfaceFlinger reports `RGBA_8888_U
 | BOTW GPU clock | 597, 599 MHz | **516, 514 MHz** |
 | BOTW work/frame | 13.53, 13.56 | **11.77, 11.75 (−13%)** |
 
-No flicker, picture correct. In Odyssey this puts Turnip below the stock driver (5.7). The gain is
+No flicker, picture correct. In Odyssey this puts Turnip below the stock driver (5.7).
+
+**v6-rc1** (patches 0001–0005, UBWC on by default; `debug.mesa.android.ubwc.swapchain=0` turns it
+off): Eden shows UBWC buffers + `DEVICE/DEVICE` with no property set. In GameNative (AC Revelations)
+the game runs correctly at the same speed, but GameNative allocates its own buffers for its X server,
+and those stay linear (`modifier 0x0`), so there's no gain there and no harm. The gain is
 GPU time the system compositor no longer spends; it should apply to every Vulkan game in a full-screen
 window on the G2.
 

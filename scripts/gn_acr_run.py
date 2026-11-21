@@ -38,6 +38,25 @@ def wait_for(tag, pattern, timeout, every=5):
     sys.exit(f"[{tag}] did not see /{pattern}/ within {timeout}s; last screen: {text[:200]}")
 
 
+def tap_ac_card(tag):
+    """Find AC Revelations' card in the library by OCR (its position depends on what the
+    library shows) and tap it. Dismisses the membership pop-up if it appears."""
+    for attempt in range(3):
+        p = ev.shot(f"{tag}-lib")
+        lines = ocr(p)
+        if any("Enjoying GameNative" in t for *_, t in lines):
+            ev.sh("input tap 911 800"); time.sleep(1.5)
+            continue
+        hits = [(x, y, w, h) for x, y, w, h, t in lines if re.search(r"Assassins Creed|Assassins r", t)]
+        if hits:
+            x, y, w, h = hits[0]
+            ev.sh(f"input tap {x + w // 2} {max(y - 80, 200)}")   # on the cover, above the title
+            time.sleep(3)
+            return
+        time.sleep(3)
+    sys.exit(f"[{tag}] AC Revelations card not found in the library; nothing tapped")
+
+
 def overlay_visible(png):
     """True if GameNative's on-screen controller is drawn: its A/B/X button outlines are
     thin light rings, brighter than the pixels just inside and outside them."""
@@ -78,11 +97,11 @@ def main():
     text = wait_for(f"{a.label}-lib", r"All \(\d+\)|Enjoying GameNative", 30)
     if "Enjoying" in text:                      # membership pop-up: press Close only
         sh("input tap 911 800"); time.sleep(1.5)
-    sh("input tap 955 300"); time.sleep(3)      # AC card (top middle of "All")
+    tap_ac_card(a.label)
     text = wait_for(f"{a.label}-page", r"Compatibility|Enjoying GameNative", 15)
     if "Enjoying" in text:
         sh("input tap 911 800"); time.sleep(1.5)
-        sh("input tap 955 300"); time.sleep(3)
+        tap_ac_card(a.label)
     wait_for(f"{a.label}-page", r"Assassins Creed Revel|Unknown . 2011", 15)
     wait_for(f"{a.label}-page", r"Compatibility", 15)
     adb_log_mark = sh("date +'%m-%d %H:%M:%S.000'").strip()

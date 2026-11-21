@@ -12,13 +12,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import eden_variant as ev                 # noqa: E402
 from eden_driver import ocr               # noqa: E402
-from gn_acr_run import wait_for, PKG      # noqa: E402
+from gn_acr_run import wait_for, tap_ac_card, PKG  # noqa: E402
 
 DRIVERS = {   # search text, regex the chosen entry must match
     "v4": ("A22", r"A22 TUNED .?4 \(Mesa 27"),      # OCR often reads "v4" as '"4'
     "v4-263": ("A22", r"A22 TUNED .?4 \(Mesa 26"),
     "v5rc2": ("v5rc2", r"v5rc2"),
     "t30": ("T30", r"Driver T30"),
+    "v6rc1": ("v6rc1", r"v6rc[1lI]"),
 }
 
 
@@ -29,10 +30,10 @@ def open_graphics(tag):
     text = wait_for(tag, r"All \(\d+\)|Enjoying GameNative", 30)
     if "Enjoying" in text:
         sh("input tap 911 800"); time.sleep(1.5)
-    sh("input tap 955 300"); time.sleep(3)                 # AC card
+    tap_ac_card(tag)
     text = wait_for(tag, r"Compatibility|Enjoying GameNative", 15)
     if "Enjoying" in text:
-        sh("input tap 911 800"); time.sleep(1.5); sh("input tap 955 300"); time.sleep(3)
+        sh("input tap 911 800"); time.sleep(1.5); tap_ac_card(tag)
     wait_for(tag, r"Assassins Creed Revel|Unknown . 2011", 15)
     sh("input tap 1658 523"); time.sleep(2.5)              # gear (NOT the trash at x=1793)
     wait_for(tag, r"Edit container", 10)
