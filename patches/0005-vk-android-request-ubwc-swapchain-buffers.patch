@@ -1,5 +1,5 @@
 diff --git a/src/vulkan/runtime/vk_android.c b/src/vulkan/runtime/vk_android.c
-index 32ff550d..b145200a 100644
+index 11b85641..bc2f37d9 100644
 --- a/src/vulkan/runtime/vk_android.c
 +++ b/src/vulkan/runtime/vk_android.c
 @@ -41,6 +41,7 @@
@@ -89,7 +89,7 @@ index 32ff550d..b145200a 100644
  
     /* for front buffer rendering */
     if (swapchainImageUsage & VK_SWAPCHAIN_IMAGE_USAGE_SHARED_BIT_ANDROID)
-@@ -1346,8 +1398,19 @@ vk_android_get_ahb_image_properties(
+@@ -1345,8 +1397,19 @@ vk_android_get_ahb_image_properties(
  
     ahb_usage_props =
        vk_find_struct(props->pNext, ANDROID_HARDWARE_BUFFER_USAGE_ANDROID);

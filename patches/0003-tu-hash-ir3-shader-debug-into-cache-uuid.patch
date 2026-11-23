@@ -1,8 +1,8 @@
 diff --git a/src/freedreno/vulkan/tu_device.cc b/src/freedreno/vulkan/tu_device.cc
-index 43e7f41c..4605963b 100644
+index 962902d7..d4fa127c 100644
 --- a/src/freedreno/vulkan/tu_device.cc
 +++ b/src/freedreno/vulkan/tu_device.cc
-@@ -125,6 +125,15 @@ tu_device_get_cache_uuid(struct tu_physical_device *device, void *uuid)
+@@ -123,6 +123,15 @@ tu_device_get_cache_uuid(struct tu_physical_device *device, void *uuid)
     _mesa_blake3_update(&ctx, &device->uche_trap_base, sizeof(device->uche_trap_base));
     _mesa_blake3_update(&ctx, &device->compiler_options,
                         sizeof(device->compiler_options));

@@ -1,5 +1,5 @@
 diff --git a/src/freedreno/ir3/ir3_compiler.c b/src/freedreno/ir3/ir3_compiler.c
-index d750cc11..abbe53a0 100644
+index b33f84b3..79f23bae 100644
 --- a/src/freedreno/ir3/ir3_compiler.c
 +++ b/src/freedreno/ir3/ir3_compiler.c
 @@ -42,6 +42,8 @@ static const struct debug_named_value shader_debug_options[] = {
@@ -12,10 +12,10 @@ index d750cc11..abbe53a0 100644
     /* MESA_DEBUG-only options: */
     {"schedmsgs",  IR3_DBG_SCHEDMSGS,  "Enable scheduler debug messages"},
 diff --git a/src/freedreno/ir3/ir3_compiler.h b/src/freedreno/ir3/ir3_compiler.h
-index b25e101f..90be8fb6 100644
+index 3b64171b..8cf3b396 100644
 --- a/src/freedreno/ir3/ir3_compiler.h
 +++ b/src/freedreno/ir3/ir3_compiler.h
-@@ -321,6 +321,8 @@ enum ir3_shader_debug {
+@@ -326,6 +326,8 @@ enum ir3_shader_debug {
     IR3_DBG_NOALIASRT = BITFIELD_BIT(25),
     IR3_DBG_NOTRIGWA = BITFIELD_BIT(26),
     IR3_DBG_TRIGWA = BITFIELD_BIT(27),
@@ -25,10 +25,10 @@ index b25e101f..90be8fb6 100644
  
  extern enum ir3_shader_debug ir3_shader_debug;
 diff --git a/src/freedreno/ir3/ir3_nir.c b/src/freedreno/ir3/ir3_nir.c
-index da3d1d8f..7c08d4bd 100644
+index 7b1defa9..5ab3efa8 100644
 --- a/src/freedreno/ir3/ir3_nir.c
 +++ b/src/freedreno/ir3/ir3_nir.c
-@@ -1021,6 +1021,30 @@ ir3_needs_trig_workarounds(const struct ir3_compiler *compiler)
+@@ -1055,6 +1055,30 @@ ir3_needs_trig_workarounds(const struct ir3_compiler *compiler)
     return true;
  }
  
@@ -59,7 +59,7 @@ index da3d1d8f..7c08d4bd 100644
  void
  ir3_nir_post_finalize(struct ir3_shader *shader)
  {
-@@ -1680,7 +1704,8 @@ ir3_nir_lower_variant(struct ir3_shader_variant *so,
+@@ -1722,7 +1746,8 @@ ir3_nir_lower_variant(struct ir3_shader_variant *so,
      * insert instructions in the preamble to push UBOs.
      */
     if (so->compiler->has_preamble &&

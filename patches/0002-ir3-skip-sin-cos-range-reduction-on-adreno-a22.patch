@@ -1,5 +1,5 @@
 diff --git a/src/freedreno/ir3/ir3_compiler.c b/src/freedreno/ir3/ir3_compiler.c
-index 9c49597..d750cc1 100644
+index def7cf6f..b33f84b3 100644
 --- a/src/freedreno/ir3/ir3_compiler.c
 +++ b/src/freedreno/ir3/ir3_compiler.c
 @@ -40,6 +40,8 @@ static const struct debug_named_value shader_debug_options[] = {
@@ -12,10 +12,10 @@ index 9c49597..d750cc1 100644
     /* MESA_DEBUG-only options: */
     {"schedmsgs",  IR3_DBG_SCHEDMSGS,  "Enable scheduler debug messages"},
 diff --git a/src/freedreno/ir3/ir3_compiler.h b/src/freedreno/ir3/ir3_compiler.h
-index 5bc4302..b25e101 100644
+index d0de9bd3..3b64171b 100644
 --- a/src/freedreno/ir3/ir3_compiler.h
 +++ b/src/freedreno/ir3/ir3_compiler.h
-@@ -319,6 +319,8 @@ enum ir3_shader_debug {
+@@ -324,6 +324,8 @@ enum ir3_shader_debug {
     IR3_DBG_RAMSGS = BITFIELD_BIT(23),
     IR3_DBG_NOALIASTEX = BITFIELD_BIT(24),
     IR3_DBG_NOALIASRT = BITFIELD_BIT(25),
@@ -25,10 +25,10 @@ index 5bc4302..b25e101 100644
  
  extern enum ir3_shader_debug ir3_shader_debug;
 diff --git a/src/freedreno/ir3/ir3_nir.c b/src/freedreno/ir3/ir3_nir.c
-index 6e6f09e..da3d1d8 100644
+index 9851ae18..7b1defa9 100644
 --- a/src/freedreno/ir3/ir3_nir.c
 +++ b/src/freedreno/ir3/ir3_nir.c
-@@ -996,6 +996,31 @@ ir3_nir_lower_io(nir_shader *s)
+@@ -1030,6 +1030,31 @@ ir3_nir_lower_io(nir_shader *s)
  /**
   * Late passes that need to be done after pscreen->finalize_nir()
   */
@@ -60,7 +60,7 @@ index 6e6f09e..da3d1d8 100644
  void
  ir3_nir_post_finalize(struct ir3_shader *shader)
  {
-@@ -1111,7 +1136,8 @@ ir3_nir_post_finalize(struct ir3_shader *shader)
+@@ -1147,7 +1172,8 @@ ir3_nir_post_finalize(struct ir3_shader *shader)
     /* we cannot ensure that ir3_finalize_nir() is only called once, so
      * we also need to do any run-once workarounds here:
      */
@@ -69,4 +69,4 @@ index 6e6f09e..da3d1d8 100644
 +      OPT(s, ir3_nir_apply_trig_workarounds);
  
     const nir_lower_image_options lower_image_opts = {
-       .lower_cube_size = true,
+       /* resinfo returns a cube (array)'s layer count, not its cube count. */

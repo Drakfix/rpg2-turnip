@@ -1,5 +1,5 @@
 diff --git a/src/freedreno/vulkan/tu_autotune.cc b/src/freedreno/vulkan/tu_autotune.cc
-index fd0b21f..294b32c 100644
+index 830b1302..10319339 100644
 --- a/src/freedreno/vulkan/tu_autotune.cc
 +++ b/src/freedreno/vulkan/tu_autotune.cc
 @@ -274,6 +274,22 @@ tu_autotune::get_env_config()
