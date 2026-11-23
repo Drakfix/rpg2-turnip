@@ -11,6 +11,27 @@ Newest first. Raw runs are in [`results/`](../results).
 - CPU: 3× A520 (cores 0–2, 1.9 GHz), 4× A720 (3–6, 2.6 GHz), 1× X4 (7, 2.8 GHz). No SVE.
 - GPU governor `msm-adreno-tz`, 255–950 MHz; it cannot be pinned without root.
 
+## 2026-11-23: Issue #1 follow-up (TP UBWC flag hint, Trails in the Sky 2nd Chapter Demo)
+
+**`enable_tp_ubwc_flag_hint=0` in Eden** (v6-rc1, hint on vs off, 20 s flicker capture per run):
+
+| | Hint on (default) | Hint off |
+|---|---|---|
+| Odyssey one-frame flashes | 0, 0 | 6, 9 |
+| Odyssey, UBWC swapchain off too | 0 | 49, 61 |
+| BOTW one-frame flashes | 0 | 107, 157 |
+
+Speed is the same, but with the hint off the image jumps for single frames in both games, with or
+without patch 0005. So the hint stays on by default; turning it off is a per-game workaround.
+
+**Black-frame flicker in the Trails demo under GameNative** (~40% black frames on the title screen) is
+not the driver: identical on v6-rc1, v5 and T30, and with Wrapper or Wrapper-v2. It is GameNative's
+**Gamescope** display server: Display Server = X11 with Vulkan rendering fixes it (SurfaceFlinger
+rendering brings it back). Measured with `scripts/gn_trails_probe.py` + `scripts/black_frames.py`.
+
+Test note: Android `debug.mesa.*` properties don't reach Turnip inside GameNative (it runs under
+Wine/Box64); set options in the container's **Environment** tab instead (e.g. `FD_DEV_FEATURES`).
+
 ## 2026-11-21: UBWC swapchain buffers (idea from StevenMXZ): −13 to −16% GPU work
 
 **Finding.** `dumpsys SurfaceFlinger` with Odyssey running in Eden:
