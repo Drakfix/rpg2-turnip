@@ -24,10 +24,24 @@ Newest first. Raw runs are in [`results/`](../results).
 Speed is the same, but with the hint off the image jumps for single frames in both games, with or
 without patch 0005. So the hint stays on by default; turning it off is a per-game workaround.
 
-**Black-frame flicker in the Trails demo under GameNative** (~40% black frames on the title screen) is
-not the driver: identical on v6-rc1, v5 and T30, and with Wrapper or Wrapper-v2. It is GameNative's
-**Gamescope** display server: Display Server = X11 with Vulkan rendering fixes it (SurfaceFlinger
-rendering brings it back). Measured with `scripts/gn_trails_probe.py` + `scripts/black_frames.py`.
+**Trails in the Sky 2nd Chapter Demo** (GameNative, v6-rc1, DXVK 2.7.1-gplasync, Proton
+11.0.2-arm64ec-13; play-tested by me). GameNative's "auto-apply known config" had already added
+`FD_DEV_FEATURES=enable_tp_ubwc_flag_hint=0` to the container's Environment tab:
+
+| Display server | Hint off (the variable) | Hint on (driver default) |
+|---|---|---|
+| X11, Vulkan rendering | **correct, no glitches in ~2 h of play** | overexposed surfaces |
+| X11, SurfaceFlinger rendering | black-frame flicker | — |
+| Gamescope | black-frame flicker (~40% of frames) | overexposed surfaces |
+
+- The overexposure is real and depends on the hint: this game renders wrong with it on, on any display server.
+- Turning it off breaks presentation elsewhere: black frames under Gamescope / SurfaceFlinger here,
+  one-frame jumps in Eden (table above). So it stays on by default and is a per-game setting.
+- The black flicker is the same on v6-rc1, v5 and T30 and with Wrapper or Wrapper-v2 (it follows the
+  variable, not the driver build).
+- **Recommended for this game:** Display Server X11 with Vulkan rendering, plus
+  `FD_DEV_FEATURES=enable_tp_ubwc_flag_hint=0` in the container's Environment tab.
+- Tools: `scripts/gn_trails_probe.py` + `scripts/black_frames.py` count black frames.
 
 Test note: Android `debug.mesa.*` properties don't reach Turnip inside GameNative (it runs under
 Wine/Box64); set options in the container's **Environment** tab instead (e.g. `FD_DEV_FEATURES`).
