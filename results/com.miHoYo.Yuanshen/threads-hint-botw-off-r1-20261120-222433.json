@@ -1,0 +1,20 @@
+{
+ "label": "hint-botw-off-r1",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 84.43333333333334,
+  "VulkanWorker": 51.833333333333336,
+  "CPUCore_2": 36.36666666666667,
+  "CPUCore_1": 31.166666666666668,
+  "CPUCore_0": 26.866666666666664,
+  "HostTiming": 12.766666666666666,
+  "GPUFencingThrea": 4.8,
+  "DSP_AudioRender": 3.6999999999999997,
+  "AudioTrack": 2.266666666666666,
+  "NativeEmulation": 2.233333333333334,
+  "audio": 1.9000000000000001,
+  "AudioRenderSyst": 1.8333333333333333,
+  "miHoYo.Yuanshen": 1.0
+ }
+}

@@ -1,0 +1,13 @@
+{
+ "label": "hint-botw-on-r2",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "CPUCore_0": 99.8,
+  "CPUCore_1": 99.56666666666668,
+  "HostTiming": 7.599999999999999,
+  "CPUCore_2": 6.733333333333333,
+  "AudioTrack": 1.2999999999999998,
+  "DSP_AudioRender": 1.0333333333333334
+ }
+}

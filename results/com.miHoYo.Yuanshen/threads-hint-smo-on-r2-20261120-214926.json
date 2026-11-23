@@ -1,0 +1,22 @@
+{
+ "label": "hint-smo-on-r2",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 81.8,
+  "VulkanWorker": 35.8,
+  "CPUCore_0": 33.50000000000001,
+  "CPUCore_1": 11.9,
+  "CPUCore_2": 3.8666666666666667,
+  "DSP_AudioRender": 3.766666666666667,
+  "AudioTrack": 2.3666666666666667,
+  "HostTiming": 2.066666666666667,
+  "GPUFencingThrea": 1.9000000000000001,
+  "AudioRenderSyst": 1.8,
+  "nvservices": 1.633333333333333,
+  "audio": 1.5333333333333332,
+  "CPUCore_3": 1.4000000000000001,
+  "NativeEmulation": 1.3333333333333333,
+  "miHoYo.Yuanshen": 1.0
+ }
+}

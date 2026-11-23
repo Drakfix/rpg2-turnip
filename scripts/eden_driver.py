@@ -50,9 +50,30 @@ def ocr(png):
 
 
 def radio_selected(png, x, y):
+    """Selected radio = filled bright accent dot (lavender or pink, depending on Eden's
+    theme); unselected = the dark card background (~30,27,30)."""
     im = cv2.imread(str(png))
     b, g, r = im[y - 6:y + 7, x - 6:x + 7].mean(axis=(0, 1))
-    return r > 180 and b > 150
+    return max(r, g, b) > 150
+
+
+def dismiss_dialogs(png):
+    """Close Eden's informational pop-ups (e.g. "Shaders Cleared" after a driver switch)
+    by tapping their OK button. Returns True if one was closed."""
+    lines = ocr(png)
+    for x, y, w, h, t in lines:
+        if t.strip() == "OK":
+            ev.sh(f"input tap {x + w // 2} {y + h // 2}")
+            time.sleep(1.2)
+            return True
+    # OCR often misses the short "OK"; it sits right of "Don't Show Again" on the same row.
+    # (Tapping outside the dialog instead cancels the driver change.)
+    for x, y, w, h, t in lines:
+        if "Show Again" in t:
+            ev.sh(f"input tap {x + w + 117} {y + h // 2}")
+            time.sleep(1.2)
+            return True
+    return False
 
 
 ASSETS = Path(__file__).resolve().parent / "eden_assets"
@@ -61,10 +82,13 @@ ASSETS = Path(__file__).resolve().parent / "eden_assets"
 def find_radios(png):
     """Centres of the driver cards' radio buttons (selected or not) on a screenshot."""
     import numpy as np
-    im = cv2.imread(str(png))
+    # Grayscale so the match doesn't depend on Eden's theme accent colour.
+    im = cv2.imread(str(png), cv2.IMREAD_GRAYSCALE)
+    if im is None:
+        sys.exit("empty screenshot: the G2 is offline or asleep; stopping")
     found = []
     for name in ("radio_off", "radio_on"):
-        t = cv2.imread(str(ASSETS / f"{name}.png"))
+        t = cv2.imread(str(ASSETS / f"{name}.png"), cv2.IMREAD_GRAYSCALE)
         res = cv2.matchTemplate(im, t, cv2.TM_CCOEFF_NORMED)
         ys, xs = np.where(res > 0.85)
         for x, y in zip(xs, ys):
@@ -130,11 +154,13 @@ def main():
             else:
                 sh(f"input tap {rx} {ry}"); time.sleep(1.2)
                 p2 = shot(f"drv-{a.game}-picked")
+                if any("Shaders Cleared" in t for *_, t in ocr(p2)) and dismiss_dialogs(p2):
+                    p2 = shot(f"drv-{a.game}-picked")
                 if not radio_selected(p2, rx, ry):
                     sys.exit(f"tapped {a.driver} at ({rx},{ry}) but it does not show as selected")
                 print(f"selected {a.driver} for {a.game} ({text!r})")
-            sh("input keyevent BACK"); time.sleep(1)
-            sh("input keyevent BACK"); time.sleep(1)
+            sh("input tap 62 126"); time.sleep(1.5)   # Eden's own back arrow (saves settings)
+            sh("input tap 62 126"); time.sleep(1.5)   # Eden's own back arrow (saves settings)
             return
         sh("input swipe 1450 750 1450 450 400")  # page down a little (cards are ~290 px)
     sys.exit(f"driver {a.driver!r} not found in the list; nothing selected")

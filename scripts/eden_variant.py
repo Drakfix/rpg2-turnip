@@ -37,6 +37,8 @@ def shot(name):
     p = SCRATCH / f"{name}.png"
     with open(p, "wb") as f:
         subprocess.run([str(ADB), "exec-out", "screencap", "-p"], stdout=f)
+    if p.stat().st_size < 1000:   # empty/garbage capture: the G2 went offline or asleep
+        sys.exit(f"screenshot '{name}' is empty: the G2 is offline or asleep; stopping")
     return p
 
 
@@ -70,6 +72,17 @@ def pick_device():
 
 def open_game_card(g):
     """From Eden's game list, filter to the game and centre its card (no launch)."""
+    # Right after a G2 reboot Eden may start before the SD-card folders are reachable and
+    # drop them from its game list (seen 2026-11-23). Wait for a non-empty library, and
+    # never type or tap into an empty one.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))   # python -I drops the script dir
+    from eden_driver import ocr
+    for _ in range(6):
+        if not any("No files were found" in t for *_, t in ocr(shot("eden-library"))):
+            break
+        time.sleep(10)
+    else:
+        sys.exit("Eden shows an empty game library (folders not reachable?); stopping without input")
     # The carousel keeps its scroll position and the search is fuzzy ("Breath" also
     # matches Sonic X Shadow), so: clear, search the full title (it ranks first),
     # then scroll the carousel back to its first card.
@@ -89,6 +102,7 @@ def main():
     ap.add_argument("--tu-debug", default="")
     ap.add_argument("--algo", default="")
     ap.add_argument("--ir3-debug", default="")
+    ap.add_argument("--fd-features", default="", help="FD_DEV_FEATURES, e.g. enable_tp_ubwc_flag_hint=0")
     ap.add_argument("--ubwc", default="", help="1: request UBWC swapchain buffers (patch 0005)")
     ap.add_argument("--gcm", default="", help="1 or 2: ir3 nir_opt_gcm (not in any cache key: "
                     "pair with a unique --ir3-debug value so shaders recompile)")
@@ -108,7 +122,9 @@ def main():
              "debug.mesa.ir3.shader.debug": a.ir3_debug,
              "debug.mesa.gcm": a.gcm,               # ir3 Global Code Motion (idea: Balemuni)
              # patch 0005: UBWC swapchain buffers (idea: StevenMXZ)
-             "debug.mesa.android.ubwc.swapchain": a.ubwc}
+             "debug.mesa.android.ubwc.swapchain": a.ubwc,
+             # freedreno device-info overrides, e.g. enable_tp_ubwc_flag_hint=0 (issue #1)
+             "debug.mesa.fd.dev.features": a.fd_features}
     for k, v in props.items():
         sh(f"setprop {k} '{v}'")
     print("props:", {k: sh(f"getprop {k}").strip() for k in props})

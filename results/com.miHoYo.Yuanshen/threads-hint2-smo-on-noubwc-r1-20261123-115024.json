@@ -1,0 +1,23 @@
+{
+ "label": "hint2-smo-on-noubwc-r1",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 77.93333333333334,
+  "VulkanWorker": 33.5,
+  "CPUCore_0": 27.8,
+  "CPUCore_1": 11.533333333333333,
+  "AudioRenderSyst": 4.266666666666667,
+  "audio": 4.199999999999999,
+  "DSP_AudioRender": 3.733333333333334,
+  "nvservices": 3.3000000000000003,
+  "CPUCore_3": 3.2999999999999994,
+  "CPUCore_2": 3.1666666666666665,
+  "AudioTrack": 3.0666666666666664,
+  "HostTiming": 3.033333333333333,
+  "GPUFencingThrea": 2.8333333333333335,
+  "miHoYo.Yuanshen": 2.1333333333333333,
+  "NativeEmulation": 1.8,
+  "vi": 1.5
+ }
+}
