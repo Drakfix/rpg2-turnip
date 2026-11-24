@@ -10,6 +10,13 @@
  *   multipass  40 render passes on 960x540 targets, LOAD/STORE + sample
  *              of the previous target, 3 draws each                    (emulator-like pass churn)
  *   pipelines  150 uncached graphics pipeline compiles                 (shader-compile stutter)
+ *   subpass    1 render pass, 2 subpasses: 12 depth-tested G-buffer draws into two transient
+ *              colour targets, then a fullscreen lighting draw reading them as input
+ *              attachments                                              (deferred shading)
+ *   resolve    1 render pass, 4x MSAA colour, 8 blended fullscreen layers, resolve
+ *              attachment                                               (MSAA resolve)
+ *   subpass and resolve are the cases where GMEM should beat SYSMEM; they are not part of
+ *   "all" (run them by name, or "gmemcases" for both).
  *
  * usage: tu_bench <driver.so> [frames] [scenario|all] [scale]
  * output: one "BENCH <name> cpu_ms=<median record time> frame_ms=<median total>" per scenario
@@ -29,6 +36,8 @@
 #include "simple_frag.h"
 #include "heavy_frag.h"
 #include "tex_frag.h"
+#include "gbuf_frag.h"
+#include "light_frag.h"
 
 struct hw_module_t;
 struct hw_device_t;
@@ -86,7 +95,7 @@ static VkInstance inst;
    X(vkCmdPipelineBarrier) X(vkCmdClearColorImage) X(vkQueueSubmit)           \
    X(vkQueueWaitIdle) X(vkCreateDescriptorSetLayout)                          \
    X(vkCreateDescriptorPool) X(vkAllocateDescriptorSets)                      \
-   X(vkUpdateDescriptorSets) X(vkCreateSampler)
+   X(vkUpdateDescriptorSets) X(vkCreateSampler) X(vkCmdNextSubpass)
 #define DECL(n) static PFN_##n n;
 FUNCS(DECL)
 #define LOAD(n)                                                               \
@@ -134,8 +143,8 @@ struct target {
    VkImageView view;
 };
 
-static struct target make_image(uint32_t w, uint32_t h, VkFormat fmt, VkImageUsageFlags usage,
-                                VkImageAspectFlags aspect)
+static struct target make_image_ms(uint32_t w, uint32_t h, VkFormat fmt, VkImageUsageFlags usage,
+                                   VkImageAspectFlags aspect, VkSampleCountFlagBits samples)
 {
    struct target t;
    VkImageCreateInfo ci = {.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -144,7 +153,7 @@ static struct target make_image(uint32_t w, uint32_t h, VkFormat fmt, VkImageUsa
                            .extent = {w, h, 1},
                            .mipLevels = 1,
                            .arrayLayers = 1,
-                           .samples = VK_SAMPLE_COUNT_1_BIT,
+                           .samples = samples,
                            .tiling = VK_IMAGE_TILING_OPTIMAL,
                            .usage = usage};
    CHECK(vkCreateImage(dev, &ci, NULL, &t.img));
@@ -166,6 +175,12 @@ static struct target make_image(uint32_t w, uint32_t h, VkFormat fmt, VkImageUsa
    return t;
 }
 
+static struct target make_image(uint32_t w, uint32_t h, VkFormat fmt, VkImageUsageFlags usage,
+                                VkImageAspectFlags aspect)
+{
+   return make_image_ms(w, h, fmt, usage, aspect, VK_SAMPLE_COUNT_1_BIT);
+}
+
 struct pc {
    float tint[4];
    float xform[4]; /* scale.xy, offset.xy in NDC */
@@ -179,9 +194,27 @@ static VkShaderModule vs_mod;
 
 static int spec_mode = 0; /* heavy.frag MODE specialization constant for the next pipeline */
 
+/* Extra pipeline parameters for the multi-subpass / MSAA scenarios. */
+struct pipe_ex {
+   VkPipelineLayout layout; /* 0: the shared layout */
+   uint32_t subpass;
+   uint32_t color_count;    /* 0: 1 */
+   VkSampleCountFlagBits samples;
+};
+
+static VkPipeline make_pipeline_ex(VkRenderPass rp, VkShaderModule fs, int blend, int depth,
+                                   uint32_t w, uint32_t h, int spec_iter, struct pipe_ex ex);
+
 static VkPipeline make_pipeline(VkRenderPass rp, VkShaderModule fs, int blend, int depth,
                                 uint32_t w, uint32_t h, int spec_iter)
 {
+   return make_pipeline_ex(rp, fs, blend, depth, w, h, spec_iter, (struct pipe_ex){0});
+}
+
+static VkPipeline make_pipeline_ex(VkRenderPass rp, VkShaderModule fs, int blend, int depth,
+                                   uint32_t w, uint32_t h, int spec_iter, struct pipe_ex ex)
+{
+   uint32_t ncolor = ex.color_count ? ex.color_count : 1;
    VkSpecializationMapEntry sme[2] = {{0, 0, sizeof(int32_t)},
                                       {1, sizeof(int32_t), sizeof(int32_t)}};
    int32_t spec_data[2] = {spec_iter > 0 ? spec_iter : 24, spec_mode};
@@ -207,7 +240,7 @@ static VkPipeline make_pipeline(VkRenderPass rp, VkShaderModule fs, int blend, i
       .polygonMode = VK_POLYGON_MODE_FILL, .cullMode = VK_CULL_MODE_NONE, .lineWidth = 1.0f};
    VkPipelineMultisampleStateCreateInfo ms = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-      .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT};
+      .rasterizationSamples = ex.samples ? ex.samples : VK_SAMPLE_COUNT_1_BIT};
    VkPipelineDepthStencilStateCreateInfo dss = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
       .depthTestEnable = depth, .depthWriteEnable = depth,
@@ -221,15 +254,17 @@ static VkPipeline make_pipeline(VkRenderPass rp, VkShaderModule fs, int blend, i
       .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
       .alphaBlendOp = VK_BLEND_OP_ADD,
       .colorWriteMask = 0xf};
+   VkPipelineColorBlendAttachmentState cbas[4] = {cba, cba, cba, cba};
    VkPipelineColorBlendStateCreateInfo cbs = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-      .attachmentCount = 1, .pAttachments = &cba};
+      .attachmentCount = ncolor, .pAttachments = cbas};
    VkGraphicsPipelineCreateInfo gpi = {
       .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
       .stageCount = 2, .pStages = stages,
       .pVertexInputState = &vi, .pInputAssemblyState = &ia, .pViewportState = &vps,
       .pRasterizationState = &rs, .pMultisampleState = &ms, .pDepthStencilState = &dss,
-      .pColorBlendState = &cbs, .layout = layout, .renderPass = rp};
+      .pColorBlendState = &cbs, .layout = ex.layout ? ex.layout : layout, .renderPass = rp,
+      .subpass = ex.subpass};
    VkPipeline p;
    CHECK(vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &gpi, NULL, &p));
    return p;
@@ -248,6 +283,12 @@ static VkFramebuffer fb_main, fb_small[2];
 static VkPipeline p_fill, p_heavy, p_quad, p_tex;
 static VkDescriptorSet ds_small[2];
 static int scale = 1; /* multiplies layers / passes so GPU time dwarfs timing jitter */
+/* subpass / resolve scenarios */
+static VkRenderPass rp_deferred, rp_msaa;
+static VkFramebuffer fb_deferred, fb_msaa;
+static VkPipeline p_gbuf, p_light, p_msaa_fill;
+static VkPipelineLayout layout_in;
+static VkDescriptorSet ds_gbuf;
 
 static void begin_main(void)
 {
@@ -322,6 +363,59 @@ static void rec_multipass(int frame)
       vkCmdDraw(cb, 6, 1, 0, 0);
       vkCmdEndRenderPass(cb);
    }
+}
+
+static void rec_subpass(int frame)
+{
+   VkClearValue cv[4] = {{.color = {.float32 = {0, 0, 0, 1}}},
+                         {.color = {.float32 = {0, 0, 0, 0}}},
+                         {.color = {.float32 = {0, 0, 1, 0}}},
+                         {.depthStencil = {1.0f, 0}}};
+   VkRenderPassBeginInfo bi = {.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                               .renderPass = rp_deferred, .framebuffer = fb_deferred,
+                               .renderArea = {{0, 0}, {W, H}},
+                               .clearValueCount = 4, .pClearValues = cv};
+   vkCmdBeginRenderPass(cb, &bi, VK_SUBPASS_CONTENTS_INLINE);
+   vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, p_gbuf);
+   for (int i = 0; i < 12 * scale; i++) {
+      /* overlapping quads at varying depth, most of them covering the screen */
+      float s = 1.2f + 0.8f * ((i * 7) % 5) / 4.0f;
+      struct pc p = {{(i & 1) * 0.8f + 0.2f, ((i >> 1) & 1) * 0.8f + 0.2f,
+                      ((i + frame) & 3) * 0.25f, 1},
+                     {s, s, -1 + 0.1f * (i % 3), -1 + 0.07f * (i % 4)},
+                     ((i * 37) % 100) / 100.0f};
+      push(&p);
+      vkCmdDraw(cb, 6, 1, 0, 0);
+   }
+   vkCmdNextSubpass(cb, VK_SUBPASS_CONTENTS_INLINE);
+   vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, p_light);
+   vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, layout_in, 0, 1, &ds_gbuf, 0,
+                           NULL);
+   struct pc pl = {{(frame & 7) / 8.0f, 0.5f, 0.5f, 1}, {2, 2, -1, -1}, 0.5f};
+   vkCmdPushConstants(cb, layout_in, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                      0, sizeof(pl), &pl);
+   vkCmdDraw(cb, 6, 1, 0, 0);
+   vkCmdEndRenderPass(cb);
+}
+
+static void rec_resolve(int frame)
+{
+   VkClearValue cv[2] = {{.color = {.float32 = {0.05f, 0.05f, 0.1f, 1}}},
+                         {.color = {.float32 = {0, 0, 0, 1}}}};
+   VkRenderPassBeginInfo bi = {.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                               .renderPass = rp_msaa, .framebuffer = fb_msaa,
+                               .renderArea = {{0, 0}, {W, H}},
+                               .clearValueCount = 2, .pClearValues = cv};
+   vkCmdBeginRenderPass(cb, &bi, VK_SUBPASS_CONTENTS_INLINE);
+   vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, p_msaa_fill);
+   for (int i = 0; i < 8 * scale; i++) {
+      /* slightly smaller than the screen and offset, so edges get multisampled coverage */
+      struct pc p = {{(i & 1) * 1.0f, ((i >> 1) & 1) * 1.0f, ((i + frame) & 3) * 0.33f, 0.3f},
+                     {1.9f, 1.9f, -0.97f + 0.01f * (i % 5), -0.96f + 0.01f * (i % 3)}, 0.5f};
+      push(&p);
+      vkCmdDraw(cb, 6, 1, 0, 0);
+   }
+   vkCmdEndRenderPass(cb);
 }
 
 /* Current GPU clock in MHz from KGSL sysfs (readable by the shell user), 0 if unavailable.
@@ -600,6 +694,146 @@ int main(int argc, char **argv)
    p_quad = make_pipeline(rp_main, fs_simple, 0, 1, W, H, 0);
    p_tex = make_pipeline(rp_load, fs_tex, 0, 0, SW, SH, 0);
 
+   /* ---- subpass / resolve scenarios (only set up when asked for) ---- */
+   int want_gmemcases = only && (!strcmp(only, "subpass") || !strcmp(only, "resolve") ||
+                                 !strcmp(only, "gmemcases"));
+   if (want_gmemcases) {
+      /* Deferred: 0 = final colour (stored), 1 = albedo RGBA8, 2 = normal RGBA16F,
+       * 3 = depth; 1-3 are transient (DONT_CARE store). */
+      const VkFormat NF = VK_FORMAT_R16G16B16A16_SFLOAT;
+      struct target fin = make_image(W, H, CF, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                                               VK_IMAGE_USAGE_SAMPLED_BIT,
+                                     VK_IMAGE_ASPECT_COLOR_BIT);
+      struct target g0 = make_image(W, H, CF, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                                              VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+                                    VK_IMAGE_ASPECT_COLOR_BIT);
+      struct target g1 = make_image(W, H, NF, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                                              VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+                                    VK_IMAGE_ASPECT_COLOR_BIT);
+      struct target gd = make_image(W, H, DF, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                    VK_IMAGE_ASPECT_DEPTH_BIT);
+      VkAttachmentDescription att[4];
+      const VkFormat fmts[4] = {CF, CF, NF, DF};
+      for (int i = 0; i < 4; i++)
+         att[i] = (VkAttachmentDescription){
+            .format = fmts[i], .samples = VK_SAMPLE_COUNT_1_BIT,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp = i == 0 ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .finalLayout = i == 3 ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+                                  : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+      VkAttachmentReference g_out[2] = {{1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL},
+                                        {2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}};
+      VkAttachmentReference g_depth = {3, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+      VkAttachmentReference g_in[2] = {{1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
+                                       {2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}};
+      VkAttachmentReference fin_ref = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+      VkSubpassDescription subs[2] = {
+         {.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS, .colorAttachmentCount = 2,
+          .pColorAttachments = g_out, .pDepthStencilAttachment = &g_depth},
+         {.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS, .inputAttachmentCount = 2,
+          .pInputAttachments = g_in, .colorAttachmentCount = 1, .pColorAttachments = &fin_ref}};
+      VkSubpassDependency dep = {
+         .srcSubpass = 0, .dstSubpass = 1,
+         .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+         .dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+         .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+         .dstAccessMask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
+         .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT};
+      VkRenderPassCreateInfo ri = {.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+                                   .attachmentCount = 4, .pAttachments = att,
+                                   .subpassCount = 2, .pSubpasses = subs,
+                                   .dependencyCount = 1, .pDependencies = &dep};
+      CHECK(vkCreateRenderPass(dev, &ri, NULL, &rp_deferred));
+      VkImageView views[4] = {fin.view, g0.view, g1.view, gd.view};
+      VkFramebufferCreateInfo fi = {.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+                                    .renderPass = rp_deferred, .attachmentCount = 4,
+                                    .pAttachments = views, .width = W, .height = H, .layers = 1};
+      CHECK(vkCreateFramebuffer(dev, &fi, NULL, &fb_deferred));
+
+      VkDescriptorSetLayoutBinding ib[2] = {
+         {.binding = 0, .descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+          .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT},
+         {.binding = 1, .descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+          .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT}};
+      VkDescriptorSetLayoutCreateInfo ili = {
+         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+         .bindingCount = 2, .pBindings = ib};
+      VkDescriptorSetLayout dsl_in;
+      CHECK(vkCreateDescriptorSetLayout(dev, &ili, NULL, &dsl_in));
+      VkDescriptorPoolSize ips = {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 2};
+      VkDescriptorPoolCreateInfo ipi = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                                        .maxSets = 1, .poolSizeCount = 1, .pPoolSizes = &ips};
+      VkDescriptorPool ipool;
+      CHECK(vkCreateDescriptorPool(dev, &ipi, NULL, &ipool));
+      VkDescriptorSetAllocateInfo idai = {
+         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+         .descriptorPool = ipool, .descriptorSetCount = 1, .pSetLayouts = &dsl_in};
+      CHECK(vkAllocateDescriptorSets(dev, &idai, &ds_gbuf));
+      VkDescriptorImageInfo iii[2] = {
+         {VK_NULL_HANDLE, g0.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
+         {VK_NULL_HANDLE, g1.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}};
+      VkWriteDescriptorSet iw = {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                 .dstSet = ds_gbuf, .dstBinding = 0, .descriptorCount = 2,
+                                 .descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+                                 .pImageInfo = iii};
+      vkUpdateDescriptorSets(dev, 1, &iw, 0, NULL);
+      VkPipelineLayoutCreateInfo ipli = {
+         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+         .setLayoutCount = 1, .pSetLayouts = &dsl_in,
+         .pushConstantRangeCount = 1, .pPushConstantRanges = &pcr};
+      CHECK(vkCreatePipelineLayout(dev, &ipli, NULL, &layout_in));
+
+      VkShaderModule fs_gbuf, fs_light;
+      smi.codeSize = sizeof(gbuf_frag); smi.pCode = gbuf_frag;
+      CHECK(vkCreateShaderModule(dev, &smi, NULL, &fs_gbuf));
+      smi.codeSize = sizeof(light_frag); smi.pCode = light_frag;
+      CHECK(vkCreateShaderModule(dev, &smi, NULL, &fs_light));
+      p_gbuf = make_pipeline_ex(rp_deferred, fs_gbuf, 0, 1, W, H, 0,
+                                (struct pipe_ex){.subpass = 0, .color_count = 2});
+      p_light = make_pipeline_ex(rp_deferred, fs_light, 0, 0, W, H, 0,
+                                 (struct pipe_ex){.layout = layout_in, .subpass = 1});
+
+      /* MSAA: 0 = 4x colour (transient), 1 = resolve target (stored). */
+      struct target ms = make_image_ms(W, H, CF, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                       VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_4_BIT);
+      struct target rs = make_image(W, H, CF, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                                              VK_IMAGE_USAGE_SAMPLED_BIT,
+                                    VK_IMAGE_ASPECT_COLOR_BIT);
+      VkAttachmentDescription matt[2] = {
+         {.format = CF, .samples = VK_SAMPLE_COUNT_4_BIT,
+          .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR, .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+          .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+          .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+          .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+          .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL},
+         {.format = CF, .samples = VK_SAMPLE_COUNT_1_BIT,
+          .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE, .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+          .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+          .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+          .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+          .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}};
+      VkAttachmentReference mref = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+      VkAttachmentReference rref = {1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+      VkSubpassDescription msub = {.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                   .colorAttachmentCount = 1, .pColorAttachments = &mref,
+                                   .pResolveAttachments = &rref};
+      VkRenderPassCreateInfo mri = {.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+                                    .attachmentCount = 2, .pAttachments = matt,
+                                    .subpassCount = 1, .pSubpasses = &msub};
+      CHECK(vkCreateRenderPass(dev, &mri, NULL, &rp_msaa));
+      VkImageView mviews[2] = {ms.view, rs.view};
+      VkFramebufferCreateInfo mfi = {.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+                                     .renderPass = rp_msaa, .attachmentCount = 2,
+                                     .pAttachments = mviews, .width = W, .height = H,
+                                     .layers = 1};
+      CHECK(vkCreateFramebuffer(dev, &mfi, NULL, &fb_msaa));
+      p_msaa_fill = make_pipeline_ex(rp_msaa, fs_simple, 1, 0, W, H, 0,
+                                     (struct pipe_ex){.samples = VK_SAMPLE_COUNT_4_BIT});
+   }
+
    /* ---- put the small targets into a defined state/layout ---- */
    {
       VkCommandBufferBeginInfo cbi = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
@@ -655,6 +889,8 @@ int main(int argc, char **argv)
    }
    if (WANT("drawcalls")) run("drawcalls", rec_drawcalls, frames);
    if (WANT("multipass")) run("multipass", rec_multipass, frames);
+   if (want_gmemcases && strcmp(only, "resolve")) run("subpass", rec_subpass, frames);
+   if (want_gmemcases && strcmp(only, "subpass")) run("resolve", rec_resolve, frames);
    if (WANT("pipelines")) {
       enum { NP = 150 };
       double t0 = now_ms();

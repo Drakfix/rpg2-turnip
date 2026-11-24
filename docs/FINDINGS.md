@@ -11,6 +11,74 @@ Newest first. Raw runs are in [`results/`](../results).
 - CPU: 3× A520 (cores 0–2, 1.9 GHz), 4× A720 (3–6, 2.6 GHz), 1× X4 (7, 2.8 GHz). No SVE.
 - GPU governor `msm-adreno-tz`, 255–950 MHz; it cannot be pinned without root.
 
+## 2026-11-23: v6-rc2 on Mesa main, and a fixed GMEM/SYSMEM rule (patch 0006)
+
+### Rebase: TUNED v6rc2
+
+Patches 0001–0005 moved from Mesa main `2b375c25fc` (Nov 10) to `ade68f7f4f` (Nov 22). Only 0002
+needed new context (upstream added a comment next to the sin/cos workaround call); the code each
+patch adds is unchanged. Built with `-mcpu=cortex-a720+nosve` and `PLATFORM_SDK=36`.
+
+- `tu_smoke`, `--trig`, `--ext`: pass. 174 extensions, the same list as v6-rc1, so nothing DXVK
+  needs went missing. The trig fingerprint is identical to v6-rc1's.
+
+### Patch 0006: a fixed per-render-pass GMEM/SYSMEM rule
+
+Patch 0001 sends everything to SYSMEM on the A22, because the adaptive (`profiled`) choice caused
+BOTW's one-frame terrain flashes. But some render passes are much faster in GMEM. The issue #1
+reporter's FauxVkTest numbers at 4K (thanks, HurzhiiYaroslav) showed SYSMEM losing about 20% on
+multi-subpass passes. Patch 0006 adds a new autotune mode, `structural`, and makes it the A22 default:
+
+- **GMEM** if the render pass has 2 or more subpasses, or a resolve attachment that is actually used.
+- **SYSMEM** for everything else.
+- The choice depends only on the render pass description: no timings, draw counts, history or
+  randomness. The same pass gets the same mode every frame.
+- Input attachments alone don't count. For dynamic rendering, Turnip always reports
+  `colorAttachmentCount + 1` input attachments and `colorAttachmentCount` resolve slots, even when
+  unused, so a naive "has inputs or resolves" test would have sent every DXVK pass to GMEM.
+- `TU_AUTOTUNE_ALGO` still overrides it. `TU_GMEM_RULE=0` (`debug.mesa.tu.gmem.rule=0`) turns the
+  rule off, which brings back plain `prefer_sysmem`. The first GMEM pass of each kind is logged once
+  as `RPG2: first GMEM render pass (...)`.
+
+**Synthetic** (`tu_bench`, new `subpass` and `resolve` cases, 1080p, scale 2, two rounds, same
+clock; raw output in `results/tu_bench_gmemcases_2026-11-23.txt`):
+
+| Case | Rule picks | Rule | Forced SYSMEM | Forced GMEM |
+|---|---|---|---|---|
+| `subpass`: G-buffer + lighting via input attachments | GMEM | 1.53 ms | 2.82–2.85 ms | 1.51–1.55 ms |
+| `resolve`: 4× MSAA + resolve attachment | GMEM | 3.40–3.44 ms | 6.7–8.5 ms | 3.41 ms |
+| `drawcalls`: 10k small quads | SYSMEM | 8.5–8.9 ms | 9.0–11.0 ms | 18.8 ms |
+| `fill`: 24 blended fullscreen layers | SYSMEM | 6.9–7.1 ms | 7.0 ms | 4.8–5.0 ms |
+
+- The rule picks the fast mode for deferred shading (−46%) and MSAA resolves (−50 to −60%).
+- It still avoids GMEM's 2.2× slowdown on draw-heavy passes.
+- It misses one case: blended overdraw in a single pass is about 30% faster in GMEM. The
+  description of a pass can't show that, and a draw-count threshold could flip between frames.
+
+**Games** (Eden, one batch, cooldown before every run, 20 s flicker capture + 60 s measurement;
+order v6-rc1 → v6rc2 → v6gm, twice):
+
+| Build | BOTW FPS | BOTW work/frame | Odyssey FPS | Odyssey busy @ 500 MHz | Odyssey work/frame | flashes |
+|---|---|---|---|---|---|---|
+| v6-rc1 (0001–0005, old Mesa) | 29.4, 29.5 | 16.47, 16.67 | 60.0, 60.0 | 62.1%, 61.9% | 5.18, 5.16 | 1 (130 blocks), 0, 0, 0 |
+| v6rc2 (0001–0005, new Mesa) | 28.4, 29.5 | 16.63, 16.48 | 60.0, 60.0 | 64.2%, 61.5% | 5.34, 5.13 | 0 |
+| v6gm (0001–0006) | 29.3, 29.3 | 16.54, 16.51 | 60.0, 60.0 | 62.9%, 62.2% | 5.24, 5.18 | 0 |
+
+- **No regression and no gain.** Every difference is within run-to-run noise.
+- **Zero new flicker.** The single 130-block event (v6-rc1, BOTW) is scattered pixels in the
+  sky and foliage, not a surface flashing (heat map checked).
+- **The rule never picked GMEM in either game.** There's no `first GMEM` line in any logcat, so
+  in Eden it behaves exactly like `prefer_sysmem`. That's why 0006 can't regress here. It also
+  can't help here, because Eden's passes are single-subpass without resolves.
+- VulkanWorker is at about 53% (BOTW) instead of about 41% in older sessions. BOTW needs about
+  16.5 Mcycles/frame instead of 12–16. That fits Eden's global settings being reset on
+  2026-11-23. Odyssey is back at 60 FPS (it was about 50 earlier that day). Only compare within
+  this batch.
+- 0006 goes into `patches/`: it met the bar (no BOTW/Odyssey regression, zero new flicker).
+- **Not tested yet:** a game where the rule actually picks GMEM. DXVK games in GameNative (MSAA
+  resolves) are the likely place. The AC Revelations run was skipped, because GameNative 1.4's
+  Quick Menu change broke `gn_acr_run.py`'s controller toggle. To check before releasing.
+
 ## 2026-11-23: Issue #1 follow-up (TP UBWC flag hint, Trails in the Sky 2nd Chapter Demo)
 
 **`enable_tp_ubwc_flag_hint=0` in Eden** (v6-rc1, hint on vs off, 20 s flicker capture per run):

@@ -19,6 +19,8 @@ spv quad_vert quad.vert
 spv simple_frag simple.frag
 spv heavy_frag heavy.frag
 spv tex_frag tex.frag
+spv gbuf_frag gbuf.frag
+spv light_frag light.frag
 
 for t in tu_smoke tu_bench; do
   "$TC/aarch64-linux-android34-clang" -O2 -Wall -Wno-unused-variable -I"$OUT" \

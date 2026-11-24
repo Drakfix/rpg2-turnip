@@ -27,6 +27,8 @@ DRIVERS = {
     "v5rc2": r"v5rc2",
     "v5ub": r"v5ub",                              # v5 + patch 0005 (UBWC swapchain, opt-in prop)
     "v6rc1": r"v6rc[1lI]",                       # v5 + 0005 on by default
+    "v6rc2": r"v6rc2",                            # v6-rc1 patches on Mesa main ade68f7f4f
+    "v6gm": r"v6g[mn]",                           # v6rc2 + patch 0006 (structural GMEM rule)
     "t30": r"T30",
     # Third-party builds studied 2026-11-20 (credit: their authors; see docs/FINDINGS.md)
     "turnipz": r"TurnipZ",                        # AlexSanz0902, TurnipZ 0.4.0

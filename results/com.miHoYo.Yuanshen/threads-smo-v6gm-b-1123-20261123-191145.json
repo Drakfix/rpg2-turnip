@@ -1,0 +1,24 @@
+{
+ "label": "smo-v6gm-b-1123",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 83.53333333333332,
+  "CPUCore_0": 39.1,
+  "VulkanWorker": 38.46666666666667,
+  "CPUCore_1": 13.233333333333334,
+  "CPUCore_2": 4.533333333333332,
+  "DSP_AudioRender": 4.0,
+  "AudioTrack": 3.233333333333333,
+  "HostTiming": 2.233333333333333,
+  "GPUFencingThrea": 2.233333333333333,
+  "AudioRenderSyst": 1.866666666666667,
+  "audio": 1.633333333333333,
+  "nvservices": 1.5666666666666667,
+  "CPUCore_3": 1.5666666666666667,
+  "NativeEmulation": 1.4666666666666666,
+  "binder:25497_5": 1.2,
+  "vi": 1.1666666666666667,
+  "miHoYo.Yuanshen": 1.1333333333333335
+ }
+}

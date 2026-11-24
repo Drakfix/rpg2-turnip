@@ -1,0 +1,43 @@
+# tu_bench, 120 frames, scale 2, 1920x1080; stock-driver warm-up before every entry; two rounds.
+# Builds: v6gm = TUNED-v6gm (patches 0001-0006, Mesa main ade68f7f4f), v6rc2 = 0001-0005, same Mesa.
+# rule = v6gm default (TU_AUTOTUNE_ALGO=structural); rule_off = v6gm with TU_GMEM_RULE=0.
+r1 rule      BENCH subpass    cpu_ms=0.059 frame_ms=1.548 min_ms=1.473 gpu_mhz=500
+r1 sysmem    BENCH subpass    cpu_ms=0.046 frame_ms=2.850 min_ms=2.721 gpu_mhz=500
+r1 gmem      BENCH subpass    cpu_ms=0.056 frame_ms=1.545 min_ms=1.415 gpu_mhz=500
+r1 rule_off  BENCH subpass    cpu_ms=0.042 frame_ms=2.808 min_ms=2.714 gpu_mhz=500
+r1 v6rc2     BENCH subpass    cpu_ms=0.046 frame_ms=2.834 min_ms=2.711 gpu_mhz=500
+r1 rule      BENCH resolve    cpu_ms=0.056 frame_ms=3.435 min_ms=3.339 gpu_mhz=500
+r1 sysmem    BENCH resolve    cpu_ms=0.051 frame_ms=6.682 min_ms=5.822 gpu_mhz=666
+r1 gmem      BENCH resolve    cpu_ms=0.056 frame_ms=3.406 min_ms=3.351 gpu_mhz=500
+r1 rule_off  BENCH resolve    cpu_ms=0.054 frame_ms=8.151 min_ms=7.552 gpu_mhz=500
+r1 v6rc2     BENCH resolve    cpu_ms=0.052 frame_ms=8.377 min_ms=6.360 gpu_mhz=537
+r1 rule      BENCH drawcalls  cpu_ms=2.070 frame_ms=8.456 min_ms=6.433 gpu_mhz=709
+r1 sysmem    BENCH drawcalls  cpu_ms=2.196 frame_ms=11.018 min_ms=7.740 gpu_mhz=577
+r1 gmem      BENCH drawcalls  cpu_ms=2.205 frame_ms=18.751 min_ms=17.823 gpu_mhz=835
+r1 rule_off  BENCH drawcalls  cpu_ms=2.029 frame_ms=8.624 min_ms=6.446 gpu_mhz=696
+r1 v6rc2     BENCH drawcalls  cpu_ms=2.034 frame_ms=8.865 min_ms=6.592 gpu_mhz=659
+r1 rule      BENCH fill       cpu_ms=0.051 frame_ms=6.939 min_ms=6.383 gpu_mhz=950
+r1 sysmem    BENCH fill       cpu_ms=0.050 frame_ms=7.012 min_ms=6.410 gpu_mhz=950
+r1 gmem      BENCH fill       cpu_ms=0.056 frame_ms=5.036 min_ms=4.787 gpu_mhz=950
+r1 rule_off  BENCH fill       cpu_ms=0.050 frame_ms=6.931 min_ms=6.408 gpu_mhz=950
+r1 v6rc2     BENCH fill       cpu_ms=0.050 frame_ms=6.956 min_ms=6.433 gpu_mhz=950
+r2 rule      BENCH subpass    cpu_ms=0.056 frame_ms=1.533 min_ms=1.452 gpu_mhz=500
+r2 sysmem    BENCH subpass    cpu_ms=0.042 frame_ms=2.819 min_ms=2.772 gpu_mhz=500
+r2 gmem      BENCH subpass    cpu_ms=0.053 frame_ms=1.506 min_ms=1.449 gpu_mhz=500
+r2 rule_off  BENCH subpass    cpu_ms=0.045 frame_ms=2.842 min_ms=2.770 gpu_mhz=500
+r2 v6rc2     BENCH subpass    cpu_ms=0.044 frame_ms=2.828 min_ms=2.693 gpu_mhz=500
+r2 rule      BENCH resolve    cpu_ms=0.056 frame_ms=3.399 min_ms=3.355 gpu_mhz=500
+r2 sysmem    BENCH resolve    cpu_ms=0.056 frame_ms=8.491 min_ms=7.909 gpu_mhz=500
+r2 gmem      BENCH resolve    cpu_ms=0.056 frame_ms=3.410 min_ms=3.356 gpu_mhz=500
+r2 rule_off  BENCH resolve    cpu_ms=0.053 frame_ms=6.835 min_ms=6.273 gpu_mhz=667
+r2 v6rc2     BENCH resolve    cpu_ms=0.052 frame_ms=7.158 min_ms=6.314 gpu_mhz=606
+r2 rule      BENCH drawcalls  cpu_ms=2.050 frame_ms=8.852 min_ms=6.491 gpu_mhz=703
+r2 sysmem    BENCH drawcalls  cpu_ms=2.191 frame_ms=8.994 min_ms=6.605 gpu_mhz=717
+r2 gmem      BENCH drawcalls  cpu_ms=2.253 frame_ms=18.750 min_ms=17.856 gpu_mhz=835
+r2 rule_off  BENCH drawcalls  cpu_ms=2.003 frame_ms=8.222 min_ms=6.439 gpu_mhz=721
+r2 v6rc2     BENCH drawcalls  cpu_ms=2.062 frame_ms=8.544 min_ms=6.453 gpu_mhz=711
+r2 rule      BENCH fill       cpu_ms=0.050 frame_ms=7.120 min_ms=6.511 gpu_mhz=950
+r2 sysmem    BENCH fill       cpu_ms=0.052 frame_ms=6.999 min_ms=6.500 gpu_mhz=950
+r2 gmem      BENCH fill       cpu_ms=0.052 frame_ms=4.808 min_ms=4.753 gpu_mhz=950
+r2 rule_off  BENCH fill       cpu_ms=0.050 frame_ms=7.160 min_ms=6.570 gpu_mhz=950
+r2 v6rc2     BENCH fill       cpu_ms=0.049 frame_ms=7.213 min_ms=6.600 gpu_mhz=950

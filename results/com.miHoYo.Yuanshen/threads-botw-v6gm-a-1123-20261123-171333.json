@@ -1,0 +1,20 @@
+{
+ "label": "botw-v6gm-a-1123",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 84.66666666666667,
+  "VulkanWorker": 52.400000000000006,
+  "CPUCore_2": 37.266666666666666,
+  "CPUCore_1": 31.233333333333334,
+  "CPUCore_0": 27.299999999999997,
+  "HostTiming": 13.300000000000002,
+  "GPUFencingThrea": 5.0,
+  "DSP_AudioRender": 3.533333333333333,
+  "AudioTrack": 2.966666666666667,
+  "NativeEmulation": 2.4,
+  "audio": 1.866666666666667,
+  "AudioRenderSyst": 1.8,
+  "miHoYo.Yuanshen": 1.1333333333333335
+ }
+}

@@ -1,0 +1,124 @@
+diff --git a/src/freedreno/vulkan/tu_autotune.cc b/src/freedreno/vulkan/tu_autotune.cc
+index 10319339..631ff44c 100644
+--- a/src/freedreno/vulkan/tu_autotune.cc
++++ b/src/freedreno/vulkan/tu_autotune.cc
+@@ -99,6 +99,8 @@ enum class tu_autotune::algorithm : uint8_t {
+    PROFILED_IMM = 2,  /* Same as PROFILED but immediately resolves the SYSMEM/GMEM probability. */
+    PREFER_SYSMEM = 3, /* Always use SYSMEM unless we have strong evidence that GMEM is better. */
+    PREFER_GMEM = 4,   /* Always use GMEM unless we have strong evidence that SYSMEM is better. */
++   STRUCTURAL = 5,    /* GMEM only when the RP's structure keeps data on chip (several subpasses or
++                       * resolves), SYSMEM otherwise. Fixed per RP: no profiling, history or randomness. */
+ 
+    DEFAULT = BANDWIDTH, /* Default algorithm, used if no other is specified. */
+ };
+@@ -211,6 +213,7 @@ struct PACKED tu_autotune::config_t {
+       ALGO_STR(PROFILED_IMM);
+       ALGO_STR(PREFER_SYSMEM);
+       ALGO_STR(PREFER_GMEM);
++      ALGO_STR(STRUCTURAL);
+ 
+       str += ", Mod Flags: 0x" + std::to_string(mod_flags) + " (";
+       MODF_STR(BIG_GMEM);
+@@ -287,8 +290,16 @@ tu_autotune::get_env_config()
+        * Still overridable with TU_AUTOTUNE_ALGO (debug.mesa.tu.autotune.algo
+        * on Android) or the tu_autotune_algorithm driconf option.
+        */
+-      if ((device->physical_device->dev_id.chip_id & 0xffffffffull) == 0x43030b00ull)
++      if ((device->physical_device->dev_id.chip_id & 0xffffffffull) == 0x43030b00ull) {
+          algo = algorithm::PREFER_SYSMEM;
++         /* RPG2: on top of that, the fixed structural rule (see
++          * structural_gmem_reason()) sends the few RPs that keep data on chip
++          * to GMEM. TU_GMEM_RULE=0 (debug.mesa.tu.gmem.rule=0) turns the rule
++          * off, leaving plain prefer_sysmem.
++          */
++         if (debug_get_bool_option("TU_GMEM_RULE", true))
++            algo = algorithm::STRUCTURAL;
++      }
+ 
+       const char *algo_str = os_get_option("TU_AUTOTUNE_ALGO");
+       std::string_view algo_strv;
+@@ -309,6 +320,8 @@ tu_autotune::get_env_config()
+             algo = algorithm::PREFER_SYSMEM;
+          } else if (algo_strv == "prefer_gmem") {
+             algo = algorithm::PREFER_GMEM;
++         } else if (algo_strv == "structural") {
++            algo = algorithm::STRUCTURAL;
+          } else {
+             mesa_logw("Unknown TU_AUTOTUNE_ALGO '%s', using default", algo_strv.data());
+          }
+@@ -1808,6 +1821,50 @@ tu_autotune::cmd_buf_ctx::generate_rp_key(const struct tu_render_pass *pass,
+    return key;
+ }
+ 
++/* RPG2: the "structural" GMEM/SYSMEM rule, made for the Adreno A22 (Retroid
++ * Pocket G2, chip id 0x43030b00) where it is the default.
++ *
++ * GMEM only pays for itself when the render pass keeps data in tile memory
++ * that SYSMEM would have to write out and read back:
++ *  - several subpasses: earlier subpasses' outputs (G-buffers, input
++ *    attachments) stay on chip instead of a full-size write + read in memory;
++ *  - a resolve attachment that is actually used: GMEM resolves while storing
++ *    each tile, SYSMEM needs a separate full-screen resolve of the MSAA image.
++ * Everything else uses SYSMEM, which on this GPU is up to ~2.5x faster for
++ * draw-heavy single-subpass RPs.
++ *
++ * The answer depends only on the render pass description, never on timings,
++ * draw counts or history, so the same RP gets the same mode every frame. That
++ * is the point: the profiled autotuner's random GMEM re-tries rendered some
++ * BOTW passes differently for single frames (terrain flicker, milky water).
++ *
++ * Input attachments alone are not a reason: Turnip's dynamic rendering always
++ * reports colorAttachmentCount + 1 of them (for local reads), and in a
++ * single-subpass legacy RP they are either a feedback loop (already sent to
++ * GMEM above via SINGLE_PRIM_MODE) or a plain read of memory that GMEM would
++ * have to load first. The same goes for resolve_count, which dynamic rendering
++ * sets to colorAttachmentCount, so only resolve attachments in use count.
++ *
++ * Returns the reason when GMEM is chosen, nullptr for SYSMEM.
++ */
++static const char *
++structural_gmem_reason(const struct tu_render_pass *pass)
++{
++   if (pass->subpass_count >= 2)
++      return "TU_AUTOTUNE_ALGO=structural: several subpasses";
++
++   for (uint32_t s = 0; s < pass->subpass_count; s++) {
++      const struct tu_subpass *subpass = &pass->subpasses[s];
++      if (!subpass->resolve_attachments)
++         continue;
++      for (uint32_t i = 0; i < subpass->resolve_count; i++) {
++         if (subpass->resolve_attachments[i].attachment != VK_ATTACHMENT_UNUSED)
++            return "TU_AUTOTUNE_ALGO=structural: resolve";
++      }
++   }
++   return nullptr;
++}
++
+ tu_autotune::render_mode
+ tu_autotune::get_optimal_mode(struct tu_cmd_buffer *cmd_buffer, rp_ctx_t *rp_ctx, rp_key_opt key_opt)
+ {
+@@ -1881,6 +1938,24 @@ tu_autotune::get_optimal_mode(struct tu_cmd_buffer *cmd_buffer, rp_ctx_t *rp_ctx
+ 
+    if (!enabled)
+       return forced("Autotuner is disabled", default_mode);
++
++   /* RPG2: decided from the RP description alone, before the checks below that
++    * only matter for the profiling algorithms (small RPs, simultaneous use).
++    * TU_AUTOTUNE_FLAGS=preempt_optimize is not combined with this rule.
++    */
++   if (config.is_enabled(algorithm::STRUCTURAL)) {
++      const char *gmem_reason = structural_gmem_reason(pass);
++      if (gmem_reason) {
++         static std::atomic<bool> logged_subpasses, logged_resolve;
++         std::atomic<bool> &logged =
++            pass->subpass_count >= 2 ? logged_subpasses : logged_resolve;
++         if (!logged.exchange(true, std::memory_order_relaxed))
++            mesa_logi("RPG2: first GMEM render pass (%s)", gmem_reason);
++         return forced(gmem_reason, render_mode::GMEM);
++      }
++      return forced("TU_AUTOTUNE_ALGO=structural: single subpass, no resolve", render_mode::SYSMEM);
++   }
++
+    if (simultaneous_use)
+       return forced("VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT", default_mode);
+    if (ignore_small_rp)
