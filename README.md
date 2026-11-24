@@ -19,7 +19,7 @@ GPU driver manager (in Eden: long-press the game → *GPU driver manager* → *I
 
 | Build | Mesa | Patches | State |
 |---|---|---|---|
-| TUNED v6-rc2 (built, not released yet) | main `ade68f7f4f` (27.0-devel) | 0001–0005 | v6-rc1's patches on a two-weeks-newer Mesa. Same speed as v6-rc1 in BOTW, Odyssey and AC Revelations, no flicker. At 2X in Odyssey: 54 FPS vs 52 (v5) and 45 (T30). |
+| **TUNED v6-rc2** (pre-release) | main `ade68f7f4f` (27.0-devel) | 0001–0005 | v6-rc1's patches on a two-weeks-newer Mesa. Same speed as v6-rc1 in BOTW, Odyssey and AC Revelations, no flicker. At 2X in Odyssey: 54 FPS vs 52 (v5) and 45 (T30). |
 | **TUNED v6-rc1** (pre-release) | main `2b375c25fc` (27.0-devel) | 0001–0005 | v5 + UBWC screen buffers: a further 13–16% less GPU work in Eden (Odyssey, BOTW), because the screen no longer needs a GPU copy per frame. GameNative: same as v5. |
 | **TUNED v5** (recommended) | main `2b375c25fc` (27.0-devel) | 0001–0004 | Tested in BOTW, Super Mario Odyssey (Eden) and AC Revelations (GameNative/DXVK). 10–18% less GPU work per frame than v4, no BOTW terrain flicker, water no longer milky in Eden's Balanced mode. Same binary as v5-rc2. |
 | TUNED v4 | main `2b375c25fc`, also a 26.3.0 build | 0001 (old `profiled` version), 0002 | Known issue: terrain flicker in BOTW. Kept for comparison. |
