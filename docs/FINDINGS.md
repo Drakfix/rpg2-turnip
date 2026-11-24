@@ -87,6 +87,12 @@ order v6-rc1 → v6rc2 → v6gm, twice):
 - So in all three games 0006 is a no-op: no regression, no gain. Its benefit stays confined to
   multi-subpass and MSAA-resolve passes, as seen in `tu_bench`. A game with MSAA turned on is
   still needed to see it fire in practice.
+- **With in-game Multisampling X4** (game restarted, same spot): MSAA is clearly active. The
+  GPU runs at 802 MHz instead of 650–665, and GPU work per frame rises by about 28% (≈13.9 vs ≈10.9
+  Mcycles). FPS only drops from 45 to 43.1, since the game is CPU-bound. 0 flash events. **Still
+  no `first GMEM` line.** So DXVK resolves AC's MSAA outside the render pass (a separate resolve
+  command), not through a resolve attachment, and the rule never sees it. A v6rc2 comparison was
+  skipped, because without the rule firing both builds make exactly the same mode choices.
 - `gn_acr_run.py` works again: in GameNative 1.4 the Quick Menu's controller settings are under
   the gamepad icon (98, 533). (98, 677) is now the stats tab, and the red button at the bottom
   exits the game.
