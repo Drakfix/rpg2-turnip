@@ -114,7 +114,9 @@ def main():
     if not overlay_visible(p):
         sh("input keyevent BACK"); time.sleep(2)
         wait_for(f"{a.label}-qm", r"Quick Menu", 10)
-        sh("input tap 98 677"); time.sleep(1.5)   # Controller section
+        # Controller section = the gamepad icon, 3rd in the left column (GameNative 1.4;
+        # (98,677) is now the stats/Task Manager tab, the red button at the bottom exits).
+        sh("input tap 98 533"); time.sleep(1.5)
         wait_for(f"{a.label}-qm", r"On-screen Controller", 10)
         sh("input tap 565 666"); time.sleep(2.5)  # On-screen Controller (closes the menu)
         if not overlay_visible(ev.shot(f"{a.label}-title")):

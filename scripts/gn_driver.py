@@ -20,6 +20,8 @@ DRIVERS = {   # search text, regex the chosen entry must match
     "v5rc2": ("v5rc2", r"v5rc2"),
     "t30": ("T30", r"Driver T30"),
     "v6rc1": ("v6rc1", r"v6rc[1lI]"),
+    "v6rc2": ("v6rc2", r"v6rc2"),                  # 0001-0005 on Mesa ade68f7f4f
+    "v6gm": ("v6gm", r"v6g[mn]"),                  # v6rc2 + 0006 (structural GMEM rule)
 }
 
 

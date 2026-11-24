@@ -75,9 +75,23 @@ order v6-rc1 → v6rc2 → v6gm, twice):
   2026-11-23. Odyssey is back at 60 FPS (it was about 50 earlier that day). Only compare within
   this batch.
 - 0006 goes into `patches/`: it met the bar (no BOTW/Odyssey regression, zero new flicker).
-- **Not tested yet:** a game where the rule actually picks GMEM. DXVK games in GameNative (MSAA
-  resolves) are the likely place. The AC Revelations run was skipped, because GameNative 1.4's
-  Quick Menu change broke `gn_acr_run.py`'s controller toggle. To check before releasing.
+**AC Revelations** (GameNative, DXVK, container on v6gm, two runs with cooldown):
+
+- The game runs correctly: 44.8 and 45.2 FPS, CPU-bound ("LIMITED BY: CPU"), 0 flash events.
+- **The rule never picked GMEM here either.** A dedicated `MESA` logcat capture over the whole
+  run has the game's own Turnip lines (pid = `A:\ACRSP.exe`, so logging from inside Wine does
+  reach logcat), but no `first GMEM` line. DXVK never builds multi-subpass render passes, and AC
+  renders at 1280×720 without MSAA resolves, so nothing in it matches the rule.
+- The FPS is higher than the 35–38 from 2026-11-14, but the save spot and the GameNative version
+  have changed since, so that's not a driver gain.
+- So in all three games 0006 is a no-op: no regression, no gain. Its benefit stays confined to
+  multi-subpass and MSAA-resolve passes, as seen in `tu_bench`. A game with MSAA turned on is
+  still needed to see it fire in practice.
+- `gn_acr_run.py` works again: in GameNative 1.4 the Quick Menu's controller settings are under
+  the gamepad icon (98, 533). (98, 677) is now the stats tab, and the red button at the bottom
+  exits the game.
+- One launch stalled in Wine before the game started (black window, no `ACRSP.exe` process, no
+  Turnip lines at all). The retry was fine: not driver-related.
 
 ## 2026-11-23: Issue #1 follow-up (TP UBWC flag hint, Trails in the Sky 2nd Chapter Demo)
 
