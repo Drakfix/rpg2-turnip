@@ -19,7 +19,7 @@ GPU driver manager (in Eden: long-press the game → *GPU driver manager* → *I
 
 | Build | Mesa | Patches | State |
 |---|---|---|---|
-| TUNED v6-rc2 (built, not released yet) | main `ade68f7f4f` (27.0-devel) | 0001–0006 | v6-rc1 on a newer Mesa plus a fixed GMEM/SYSMEM rule (0006). Same speed as v6-rc1 in BOTW, Odyssey and AC Revelations (GameNative), no flicker. None of the three triggers the new rule. |
+| TUNED v6-rc2 (built, not released yet) | main `ade68f7f4f` (27.0-devel) | 0001–0005 | v6-rc1's patches on a two-weeks-newer Mesa. Same speed as v6-rc1 in BOTW, Odyssey and AC Revelations, no flicker. At 2X in Odyssey: 54 FPS vs 52 (v5) and 45 (T30). |
 | **TUNED v6-rc1** (pre-release) | main `2b375c25fc` (27.0-devel) | 0001–0005 | v5 + UBWC screen buffers: a further 13–16% less GPU work in Eden (Odyssey, BOTW), because the screen no longer needs a GPU copy per frame. GameNative: same as v5. |
 | **TUNED v5** (recommended) | main `2b375c25fc` (27.0-devel) | 0001–0004 | Tested in BOTW, Super Mario Odyssey (Eden) and AC Revelations (GameNative/DXVK). 10–18% less GPU work per frame than v4, no BOTW terrain flicker, water no longer milky in Eden's Balanced mode. Same binary as v5-rc2. |
 | TUNED v4 | main `2b375c25fc`, also a 26.3.0 build | 0001 (old `profiled` version), 0002 | Known issue: terrain flicker in BOTW. Kept for comparison. |
@@ -34,7 +34,7 @@ GPU driver manager (in Eden: long-press the game → *GPU driver manager* → *I
 | [0003](patches/0003-tu-hash-ir3-shader-debug-into-cache-uuid.patch) hash `IR3_SHADER_DEBUG` into the cache UUID | Test plumbing only: compiler options can be A/B tested without stale cached shaders. No effect when unset. | — |
 | [0004](patches/0004-ir3-skip-opt-preamble-on-adreno-a22.patch) skip `nir_opt_preamble` | Stops hoisting uniform code into the shader preamble, which costs the A22 more than it saves (descriptor prefetch and early preamble are kept). | BOTW: 15.8 vs 17.5 Mcycles/frame with the pass, on par with the blob (15.3). |
 | [0005](patches/0005-vk-android-request-ubwc-swapchain-buffers.patch) UBWC swapchain buffers | Asks gralloc for compressed screen buffers (usage bit `0x10000000`) like Qualcomm's driver. With linear buffers the G2's rotated panel forces Android to composite the game on the GPU every frame. Idea: StevenMXZ; own implementation. `debug.mesa.android.ubwc.swapchain=0` disables it. | Odyssey 6.04 → 5.06 Mcycles/frame (−16%, below stock), BOTW 13.5 → 11.8 (−13%); `DEVICE/DEVICE` composition like stock. |
-| [0006](patches/0006-tu-autotune-structural-gmem-rule-on-adreno-a22.patch) fixed GMEM/SYSMEM rule | Render passes with several subpasses or a used resolve attachment go to GMEM, everything else stays in SYSMEM. The rule only looks at how the pass is set up, so a pass can't change mode between frames (no flicker risk from re-tries). `debug.mesa.tu.gmem.rule=0` turns it off. | Deferred-shading test −46%, MSAA resolve −50 to −60%, draw-heavy pass still SYSMEM. BOTW/Odyssey unchanged (Eden never triggers it), no flicker. |
+| [0006](patches-exp/0006-tu-autotune-structural-gmem-rule-on-adreno-a22.patch) fixed GMEM/SYSMEM rule (**experimental, not in the builds**) | Render passes with several subpasses or a used resolve attachment go to GMEM, everything else stays in SYSMEM, with no per-frame switching. | Deferred-shading test −46%, MSAA resolve −50 to −60%, same image as SYSMEM. But no tested game triggers it (Eden, DXVK in GameNative, Dolphin, even with MSAA on), so it stays out of the builds. |
 
 All builds also use `-mcpu=cortex-a720+nosve` (the G2's CPU has no SVE), which cut
 command-recording CPU time by about 6%, and `-Dplatform-sdk-version=36` so DXVK
@@ -73,7 +73,7 @@ frames:
 
 | Driver | FPS | GPU work / frame |
 |---|---|---|
-| **TUNED v6 (v6-rc2 candidate)** | **54.0** | **17.3** |
+| **TUNED v6 (v6-rc2)** | **54.0** | **17.3** |
 | TUNED v5 | 52.0 | 18.0 |
 | MrPurple T30 | 45.0 | 20.8 |
 | Qualcomm 762.31 (stock) | — | renders only the top-left quarter of the screen at 2X |

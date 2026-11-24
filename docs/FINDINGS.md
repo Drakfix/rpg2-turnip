@@ -118,7 +118,8 @@ order v6-rc1 → v6rc2 → v6gm, twice):
   16.5 Mcycles/frame instead of 12–16. That fits Eden's global settings being reset on
   2026-11-23. Odyssey is back at 60 FPS (it was about 50 earlier that day). Only compare within
   this batch.
-- 0006 goes into `patches/`: it met the bar (no BOTW/Odyssey regression, zero new flicker).
+- 0006 first went into `patches/` (no BOTW/Odyssey regression, zero new flicker), then moved
+  back to `patches-exp/` after the game scan below.
 **AC Revelations** (GameNative, DXVK, container on v6gm, two runs with cooldown):
 
 - The game runs correctly: 44.8 and 45.2 FPS, CPU-bound ("LIMITED BY: CPU"), 0 flash events.
@@ -142,6 +143,30 @@ order v6-rc1 → v6rc2 → v6gm, twice):
   exits the game.
 - One launch stalled in Wine before the game started (black window, no `ACRSP.exe` process, no
   Turnip lines at all). The retry was fine: not driver-related.
+
+**Scan for a game that triggers 0006** (live logcat watch for `first GMEM`, each game on v6gm
+with its MSAA option at the highest setting where it has one):
+
+| App / game | Anti-aliasing used | Rule fired? |
+|---|---|---|
+| Eden: BOTW, Super Mario Odyssey | none (Switch games) | no |
+| GameNative: AC Revelations (DX9) | Multisampling X4 (GPU work +28%, so it's active) | no |
+| GameNative: Far Cry 2 | "X4" (GPU load about the same as without it) | no |
+| GameNative: Trails in the Sky 2nd Chapter Demo | only FXAA/SMAA/TAA/FSR, no MSAA | no |
+| Dolphin (Vulkan): Super Mario Eclipse | Full Scene Anti-Aliasing 4x | no |
+
+In practice DXVK and Dolphin resolve MSAA in a separate step after the render pass, and none of
+these apps builds multi-subpass passes. So the passes 0006 targets don't occur in the emulators
+used on the G2.
+
+**Decision:** 0006 moves back to `patches-exp/`. It is safe (same images as SYSMEM, no
+regressions), but it never runs in practice. **v6-rc2 = patches 0001–0005 on Mesa main
+`ade68f7f4f`** (`out/turnip-a22-TUNED-v6-rc2-mesa27dev.zip`, same library as the tested TUNED-v6rc2
+build). The v6gm runs above count for v6-rc2 too, because the rule never fired in any of them.
+
+Side note: Mario Sunshine Sunburn (romhack) runs noticeably worse in Dolphin's Vulkan backend
+than in OpenGL. This happens with the stock Vulkan driver, T30 and other Turnip builds too, so it
+looks like a Dolphin Vulkan + game issue, not something in our patches.
 
 ## 2026-11-23: Issue #1 follow-up (TP UBWC flag hint, Trails in the Sky 2nd Chapter Demo)
 
