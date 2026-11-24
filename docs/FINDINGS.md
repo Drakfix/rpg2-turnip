@@ -11,6 +11,32 @@ Newest first. Raw runs are in [`results/`](../results).
 - CPU: 3× A520 (cores 0–2, 1.9 GHz), 4× A720 (3–6, 2.6 GHz), 1× X4 (7, 2.8 GHz). No SVE.
 - GPU governor `msm-adreno-tz`, 255–950 MHz; it cannot be pinned without root.
 
+## 2026-11-23: Super Mario Odyssey at 2X: the GPU gains turn into FPS
+
+At 1X, Odyssey keeps the GPU at its 500 MHz floor, so driver differences only show up as busy %.
+At **2X** (Eden per-game resolution, `resolution_setup=6`) the GPU is the limit: every Turnip build
+runs at the 950 MHz maximum, 98% busy. So less GPU work per frame becomes more FPS.
+
+Wooded Kingdom ship spawn, cooldown before every run, 20 s flicker capture + 60 s measurement,
+order v6gm → v5 → stock → T30, twice:
+
+| Driver | FPS | GPU MHz / busy | GPU work / frame | flashes |
+|---|---|---|---|---|
+| **v6gm** (v6-rc2 candidate, 0001–0006) | **54.25, 53.75** | 950 / 98% | **17.20, 17.36** | 0, 0 |
+| TUNED v5 | 52.28, 51.72 | 950 / 98% | 17.87, 18.05 | 0, 0 |
+| MrPurple T30 | 44.87, 45.12 | 950 / 99% | 20.87, 20.75 | 0, 0 |
+| Stock 762.31 | (60.0) | 785–797 / 77% | (10.0–10.3) | **broken output** |
+
+- **v6 is about 4% faster than v5 and about 20% faster than T30** at the same maximum clock. The
+  4% is patch 0005 (UBWC screen buffers): the compositor no longer copies the frame on the GPU.
+- **The stock Qualcomm driver renders Odyssey wrong at 2X**, in both runs: only the top-left
+  quarter of the screen shows the game (zoomed in), and the rest is black. Its 60 FPS and low GPU
+  work come from that broken output, so they aren't comparable. At 2X the Turnip builds are the
+  ones that work.
+- Odyssey is still below 60 FPS on Turnip at 2X, so it's GPU-bound here. This is the setting where
+  further GPU-side work would be felt.
+- After the batch, Odyssey's driver was put back on v6gm.
+
 ## 2026-11-23: v6-rc2 on Mesa main, and a fixed GMEM/SYSMEM rule (patch 0006)
 
 ### Rebase: TUNED v6rc2

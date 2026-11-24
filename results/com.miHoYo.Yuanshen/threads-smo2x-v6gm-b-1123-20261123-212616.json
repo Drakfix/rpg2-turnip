@@ -1,0 +1,22 @@
+{
+ "label": "smo2x-v6gm-b-1123",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 78.33333333333333,
+  "VulkanWorker": 37.699999999999996,
+  "CPUCore_0": 37.20000000000001,
+  "CPUCore_1": 13.566666666666668,
+  "CPUCore_2": 4.766666666666667,
+  "DSP_AudioRender": 4.333333333333333,
+  "AudioTrack": 3.3000000000000003,
+  "GPUFencingThrea": 2.533333333333333,
+  "HostTiming": 2.3000000000000003,
+  "AudioRenderSyst": 2.1,
+  "audio": 1.866666666666667,
+  "nvservices": 1.7333333333333334,
+  "CPUCore_3": 1.7,
+  "NativeEmulation": 1.4333333333333336,
+  "miHoYo.Yuanshen": 1.3333333333333333
+ }
+}

@@ -68,6 +68,16 @@ Here FPS is limited by Eden's own GPU-emulation thread, so all Turnip builds rea
 v5 gets there at the lowest GPU clock (18% less GPU work than v4, 31% less than T30), while the
 stock driver loses about 2 FPS to its higher CPU cost.
 
+At **2X resolution** the GPU becomes the limit (950 MHz, 98% busy), and the GPU savings turn into
+frames:
+
+| Driver | FPS | GPU work / frame |
+|---|---|---|
+| **TUNED v6 (v6-rc2 candidate)** | **54.0** | **17.3** |
+| TUNED v5 | 52.0 | 18.0 |
+| MrPurple T30 | 45.0 | 20.8 |
+| Qualcomm 762.31 (stock) | — | renders only the top-left quarter of the screen at 2X |
+
 Windows games in GameNative are limited by the CPU (x86 translation): Assassin's Creed
 Revelations runs at 35–38 FPS on v5, T30 and v4 alike, and Far Cry 2 at 44–45 FPS on v4 and
 T30. v5 brings no regression there, and GPU-side tuning has little left to give. Full notes and every run: [docs/FINDINGS.md](docs/FINDINGS.md).

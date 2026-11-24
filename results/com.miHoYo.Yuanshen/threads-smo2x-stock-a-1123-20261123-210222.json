@@ -1,0 +1,23 @@
+{
+ "label": "smo2x-stock-a-1123",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 77.00000000000001,
+  "VulkanWorker": 58.43333333333333,
+  "CPUCore_0": 44.13333333333333,
+  "CPUCore_1": 14.566666666666668,
+  "GPUFencingThrea": 14.1,
+  "CPUCore_2": 5.533333333333334,
+  "DSP_AudioRender": 4.6000000000000005,
+  "AudioTrack": 3.6333333333333333,
+  "HostTiming": 2.5,
+  "AudioRenderSyst": 2.1333333333333333,
+  "audio": 1.9000000000000001,
+  "nvservices": 1.8,
+  "CPUCore_3": 1.6666666666666667,
+  "miHoYo.Yuanshen": 1.4000000000000001,
+  "vi": 1.2000000000000002,
+  "binder:14600_5": 1.0
+ }
+}

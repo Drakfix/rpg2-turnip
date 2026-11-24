@@ -1,0 +1,22 @@
+{
+ "label": "smo2x-t30-a-1123",
+ "samples": 6,
+ "interval": 5,
+ "threads": {
+  "GPU": 69.5,
+  "VulkanWorker": 33.1,
+  "CPUCore_0": 29.099999999999998,
+  "CPUCore_1": 11.466666666666667,
+  "DSP_AudioRender": 4.033333333333333,
+  "CPUCore_2": 3.9333333333333336,
+  "AudioTrack": 3.0666666666666664,
+  "GPUFencingThrea": 2.1333333333333333,
+  "HostTiming": 2.1333333333333333,
+  "AudioRenderSyst": 1.9000000000000001,
+  "audio": 1.6333333333333335,
+  "CPUCore_3": 1.566666666666667,
+  "nvservices": 1.4666666666666668,
+  "NativeEmulation": 1.2666666666666666,
+  "miHoYo.Yuanshen": 1.2333333333333334
+ }
+}
