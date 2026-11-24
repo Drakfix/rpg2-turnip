@@ -18,6 +18,9 @@
  *   subpass and resolve are the cases where GMEM should beat SYSMEM; they are not part of
  *   "all" (run them by name, or "gmemcases" for both).
  *
+ * TU_BENCH_DUMP=<prefix> also writes each scenario's final image (frame 0, raw RGBA8) to
+ * <prefix>-<name>.rgba, to compare GMEM vs SYSMEM rendering (or two drivers) pixel by pixel.
+ *
  * usage: tu_bench <driver.so> [frames] [scenario|all] [scale]
  * output: one "BENCH <name> cpu_ms=<median record time> frame_ms=<median total>" per scenario
  */
@@ -95,7 +98,9 @@ static VkInstance inst;
    X(vkCmdPipelineBarrier) X(vkCmdClearColorImage) X(vkQueueSubmit)           \
    X(vkQueueWaitIdle) X(vkCreateDescriptorSetLayout)                          \
    X(vkCreateDescriptorPool) X(vkAllocateDescriptorSets)                      \
-   X(vkUpdateDescriptorSets) X(vkCreateSampler) X(vkCmdNextSubpass)
+   X(vkUpdateDescriptorSets) X(vkCreateSampler) X(vkCmdNextSubpass)            \
+   X(vkCreateBuffer) X(vkGetBufferMemoryRequirements) X(vkBindBufferMemory)   \
+   X(vkMapMemory) X(vkCmdCopyImageToBuffer)
 #define DECL(n) static PFN_##n n;
 FUNCS(DECL)
 #define LOAD(n)                                                               \
@@ -289,6 +294,11 @@ static VkFramebuffer fb_deferred, fb_msaa;
 static VkPipeline p_gbuf, p_light, p_msaa_fill;
 static VkPipelineLayout layout_in;
 static VkDescriptorSet ds_gbuf;
+/* TU_BENCH_DUMP=<prefix>: after a scenario, render one fixed frame (frame 0) and write the
+ * scenario's final colour image to <prefix>-<name>.rgba (raw RGBA8, W x H), so the output of
+ * GMEM and SYSMEM rendering (or of two drivers) can be compared pixel by pixel. */
+static VkImage dump_img;
+static VkImage img_color, img_fin, img_rs;
 
 static void begin_main(void)
 {
@@ -436,6 +446,65 @@ static double gpu_mhz(void)
    return atof(buf) / 1e6;
 }
 
+static void dump_image(const char *name, void (*rec)(int))
+{
+   const char *prefix = getenv("TU_BENCH_DUMP");
+   if (!prefix || !dump_img)
+      return;
+   const VkDeviceSize size = (VkDeviceSize)W * H * 4;
+   VkBufferCreateInfo bci = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = size,
+                             .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT};
+   VkBuffer buf;
+   CHECK(vkCreateBuffer(dev, &bci, NULL, &buf));
+   VkMemoryRequirements mr;
+   vkGetBufferMemoryRequirements(dev, buf, &mr);
+   VkMemoryAllocateInfo ai = {.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+                              .allocationSize = mr.size,
+                              .memoryTypeIndex = find_mem(mr.memoryTypeBits,
+                                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)};
+   VkDeviceMemory mem;
+   CHECK(vkAllocateMemory(dev, &ai, NULL, &mem));
+   CHECK(vkBindBufferMemory(dev, buf, mem, 0));
+
+   VkCommandBufferBeginInfo cbi = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+   CHECK(vkResetCommandBuffer(cb, 0));
+   CHECK(vkBeginCommandBuffer(cb, &cbi));
+   rec(0);
+   VkImageMemoryBarrier b = {.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                             .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                             .dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
+                             .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                             .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                             .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                             .image = dump_img,
+                             .subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+   vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &b);
+   VkBufferImageCopy reg = {.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+                            .imageExtent = {W, H, 1}};
+   vkCmdCopyImageToBuffer(cb, dump_img, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buf, 1, &reg);
+   CHECK(vkEndCommandBuffer(cb));
+   VkSubmitInfo si = {.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                      .commandBufferCount = 1, .pCommandBuffers = &cb};
+   CHECK(vkQueueSubmit(queue, 1, &si, VK_NULL_HANDLE));
+   CHECK(vkQueueWaitIdle(queue));
+
+   void *p;
+   CHECK(vkMapMemory(dev, mem, 0, size, 0, &p));
+   char path[512];
+   snprintf(path, sizeof(path), "%s-%s.rgba", prefix, name);
+   FILE *f = fopen(path, "wb");
+   if (!f || fwrite(p, 1, size, f) != size) {
+      printf("FAIL writing %s\n", path);
+      _exit(3);
+   }
+   fclose(f);
+   printf("DUMP %s %ux%u\n", path, W, H);
+   fflush(stdout);
+}
+
 static void run(const char *name, void (*rec)(int), int frames)
 {
    int warm = frames / 4;
@@ -485,6 +554,7 @@ static void run(const char *name, void (*rec)(int), int frames)
    free(tot);
    free(all);
    free(clk);
+   dump_image(name, rec);
 }
 
 int main(int argc, char **argv)
@@ -570,8 +640,10 @@ int main(int argc, char **argv)
    /* ---- targets ---- */
    const VkFormat CF = VK_FORMAT_R8G8B8A8_UNORM, DF = VK_FORMAT_D32_SFLOAT;
    struct target color = make_image(W, H, CF, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                                              VK_IMAGE_USAGE_SAMPLED_BIT,
+                                              VK_IMAGE_USAGE_SAMPLED_BIT |
+                                              VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                     VK_IMAGE_ASPECT_COLOR_BIT);
+   img_color = color.img;
    struct target depth = make_image(W, H, DF, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                                     VK_IMAGE_ASPECT_DEPTH_BIT);
    struct target small[2];
@@ -702,8 +774,10 @@ int main(int argc, char **argv)
        * 3 = depth; 1-3 are transient (DONT_CARE store). */
       const VkFormat NF = VK_FORMAT_R16G16B16A16_SFLOAT;
       struct target fin = make_image(W, H, CF, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                                               VK_IMAGE_USAGE_SAMPLED_BIT,
+                                               VK_IMAGE_USAGE_SAMPLED_BIT |
+                                               VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                      VK_IMAGE_ASPECT_COLOR_BIT);
+      img_fin = fin.img;
       struct target g0 = make_image(W, H, CF, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
                                               VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
                                     VK_IMAGE_ASPECT_COLOR_BIT);
@@ -800,8 +874,10 @@ int main(int argc, char **argv)
       struct target ms = make_image_ms(W, H, CF, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                                        VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_4_BIT);
       struct target rs = make_image(W, H, CF, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                                              VK_IMAGE_USAGE_SAMPLED_BIT,
+                                              VK_IMAGE_USAGE_SAMPLED_BIT |
+                                              VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                     VK_IMAGE_ASPECT_COLOR_BIT);
+      img_rs = rs.img;
       VkAttachmentDescription matt[2] = {
          {.format = CF, .samples = VK_SAMPLE_COUNT_4_BIT,
           .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR, .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -866,6 +942,7 @@ int main(int argc, char **argv)
    }
 
 #define WANT(s) (!only || !strcmp(only, s))
+   dump_img = img_color; /* fill, heavy_fs, fsmodes, drawcalls render into the main target */
    if (WANT("fill")) run("fill", rec_fill, frames);
    if (WANT("heavy_fs")) run("heavy_fs", rec_heavy, frames);
    /* Per-operation variants of the heavy fragment shader; only on request
@@ -888,8 +965,11 @@ int main(int argc, char **argv)
       p_heavy = saved;
    }
    if (WANT("drawcalls")) run("drawcalls", rec_drawcalls, frames);
+   dump_img = VK_NULL_HANDLE; /* multipass: small targets, not dumped */
    if (WANT("multipass")) run("multipass", rec_multipass, frames);
+   dump_img = img_fin;
    if (want_gmemcases && strcmp(only, "resolve")) run("subpass", rec_subpass, frames);
+   dump_img = img_rs;
    if (want_gmemcases && strcmp(only, "subpass")) run("resolve", rec_resolve, frames);
    if (WANT("pipelines")) {
       enum { NP = 150 };

@@ -81,6 +81,24 @@ clock; raw output in `results/tu_bench_gmemcases_2026-11-23.txt`):
 - It misses one case: blended overdraw in a single pass is about 30% faster in GMEM. The
   description of a pass can't show that, and a draw-count threshold could flip between frames.
 
+**Image check: does GMEM render these passes correctly?** `tu_bench` can now save each scene's
+final image (`TU_BENCH_DUMP=<prefix>`). The four scenes were rendered by v6gm with the rule, with
+forced SYSMEM and forced GMEM (twice), and by the stock driver, then compared pixel by pixel
+(`results/gmem_image_check_2026-11-23.txt`):
+
+| Scene | GMEM vs SYSMEM | GMEM run 1 vs run 2 | GMEM vs stock |
+|---|---|---|---|
+| `fill` (blending) | identical | identical | identical |
+| `drawcalls` (depth test) | identical | identical | identical |
+| `subpass` (G-buffer + input attachments) | identical | identical | 21 pixels off by 1 |
+| `resolve` (4× MSAA) | 0.43% of pixels off by 1, all on quad edges | identical | **identical** |
+
+- No wrong rendering in GMEM for the passes 0006 targets, and GMEM gives the same picture on every run.
+- In the MSAA scene, GMEM's resolve matches the stock driver pixel for pixel. Turnip's SYSMEM
+  resolve rounds edge pixels by 1, so for this case GMEM is actually the closer match.
+- This covers the risk in synthetic passes only. A game could still use a combination these
+  tests don't, so a game that triggers the rule is still needed before calling it proven.
+
 **Games** (Eden, one batch, cooldown before every run, 20 s flicker capture + 60 s measurement;
 order v6-rc1 → v6rc2 → v6gm, twice):
 

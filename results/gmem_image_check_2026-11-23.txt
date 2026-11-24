@@ -1,0 +1,33 @@
+# tu_bench TU_BENCH_DUMP image comparison, 2026-11-23. Frame 0 of each scenario, 1920x1080 RGBA8.
+# rule = TUNED-v6gm default (structural); sysmem/gmem = v6gm with TU_DEBUG=sysmem/gmem; gmem2 = repeat; stock = Qualcomm 762.31.
+# Per pair: % identical pixels, pixels differing by more than 1, largest channel difference.
+== fill: sysmem image mean 159.8 (not blank: True)
+   gmem   vs gmem2 : identical=100%  diff>1 px=       0  max diff=  0
+   sysmem vs gmem  : identical=100%  diff>1 px=       0  max diff=  0
+   rule   vs gmem  : identical=100%  diff>1 px=       0  max diff=  0
+   rule   vs sysmem: identical=100%  diff>1 px=       0  max diff=  0
+   sysmem vs stock : identical=100%  diff>1 px=       0  max diff=  0
+   gmem   vs stock : identical=100%  diff>1 px=       0  max diff=  0
+== drawcalls: sysmem image mean 146.1 (not blank: True)
+   gmem   vs gmem2 : identical=100%  diff>1 px=       0  max diff=  0
+   sysmem vs gmem  : identical=100%  diff>1 px=       0  max diff=  0
+   rule   vs gmem  : identical=100%  diff>1 px=       0  max diff=  0
+   rule   vs sysmem: identical=100%  diff>1 px=       0  max diff=  0
+   sysmem vs stock : identical=100%  diff>1 px=       0  max diff=  0
+   gmem   vs stock : identical=100%  diff>1 px=       0  max diff=  0
+== subpass: sysmem image mean 132.9 (not blank: True)
+   gmem   vs gmem2 : identical=100%  diff>1 px=       0  max diff=  0
+   sysmem vs gmem  : identical=100%  diff>1 px=       0  max diff=  0
+   rule   vs gmem  : identical=100%  diff>1 px=       0  max diff=  0
+   rule   vs sysmem: identical=100%  diff>1 px=       0  max diff=  0
+   sysmem vs stock : identical= 99%  diff>1 px=       0  max diff=  1
+   gmem   vs stock : identical= 99%  diff>1 px=       0  max diff=  1
+== resolve: sysmem image mean 169.8 (not blank: True)
+   gmem   vs gmem2 : identical=100%  diff>1 px=       0  max diff=  0
+   sysmem vs gmem  : identical= 99%  diff>1 px=       0  max diff=  1
+   rule   vs gmem  : identical=100%  diff>1 px=       0  max diff=  0
+   rule   vs sysmem: identical= 99%  diff>1 px=       0  max diff=  1
+   sysmem vs stock : identical= 99%  diff>1 px=       0  max diff=  1
+   gmem   vs stock : identical=100%  diff>1 px=       0  max diff=  0
+# resolve: the 8949 pixels (0.43%) that differ between sysmem and gmem/stock are all quad-edge pixels (partial MSAA coverage), off by 1.
+# subpass: gmem/sysmem vs stock differ in 21 pixels by 1.
